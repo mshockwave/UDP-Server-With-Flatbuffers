@@ -11,7 +11,15 @@ const HandleFunc Router::NotFoundHandler = HANDLE_FUNC(){
     utils::TrimString((path), PATH_SEPARATOR)
 
 Router& Router::Path(std::string path, HandleFunc func){
-    /*Remove prefix separator to avoid path mismatching*/
+    /*
+     * If you write /a/b
+     * Property tree would split it into "", "a", "b"
+     * Three identifiers instead of two("a" and "b") as we thought
+     * So if you concate another sub-router like /c to /a/b
+     * It would interpret the result identifiers as "", "a", "b", "", "c"
+     * Instead of "a", "b", "c". Thus, /a/b/c path would cause path not found
+     * The solution is simple: trim all the prefixing or suffixing '/'s in each path.
+     */
     TRIM_PATH_SEP(path);
     callback_tree.put(get_path(path), func);
     return *this;

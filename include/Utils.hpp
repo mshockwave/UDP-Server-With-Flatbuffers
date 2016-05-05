@@ -2,6 +2,8 @@
 #define _UTILS_HPP_
 
 #include <string>
+#include <vector>
+#include <functional>
 
 namespace utils{
     
@@ -19,6 +21,13 @@ namespace utils{
         }
         if(i + 1 < str.length()) str.erase(i+1);
     }
+    
+    typedef std::function<void(void)> FinalizeCallback;
+    //Default: Push to the front
+    void AddFinalizeCallback(const FinalizeCallback&);
+    void PushBackFinalizeCallback(const FinalizeCallback&);
+    void InsertFinalizeCallback(unsigned int, const FinalizeCallback&);
+    void DoFinalize();
     
 }; //namespace utils
 

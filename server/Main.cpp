@@ -13,6 +13,7 @@ extern "C"{
 }
 
 #include <Log.hpp>
+#include <Utils.hpp>
 
 #define SERVER_USAGE \
     "Usage: %s <server port>\n"
@@ -21,17 +22,9 @@ extern "C"{
 #define SOCKET_BUFFER_SIZE  (240 * (1 << 10)) //240KB
 #endif
 
-static int sServerSocket = -1;
-static fd_set sFdSet;
-static bool sTerminate = false;
-
-void sigKillHandle(int sig){
-    puts("Closing server socket...");
-    if(sServerSocket >= 0){
-        FD_CLR(sServerSocket, &sFdSet);
-        close(sServerSocket);
-        sTerminate = true;
-    }
+static void sigKillHandle(int sig){
+    Log::V("Main") << "Cleaning up..." << std::endl;
+    utils::DoFinalize();
 }
 
 int main(int argc, char **argv){
@@ -55,7 +48,6 @@ int main(int argc, char **argv){
     
     //Server socket
     int serverFd = socket(AF_INET, SOCK_DGRAM, 0);
-    sServerSocket = serverFd;
     int socket_buffer_size = SOCKET_BUFFER_SIZE;
     setsockopt(serverFd, SOL_SOCKET, SO_RCVBUF, &socket_buffer_size, sizeof(socket_buffer_size));
     bind(serverFd, (struct sockaddr*)&server_addr, sizeof(server_addr));
@@ -65,21 +57,32 @@ int main(int argc, char **argv){
     Log::V("Server Main") << "Listening on 0.0.0.0:" << port << "..." << std::endl;
     
     
-    FD_ZERO(&sFdSet);
+    fd_set fds;
+    FD_ZERO(&fds);
     int max_fd = serverFd + 1;
+    utils::AddFinalizeCallback([&](void)->void{
+        //Log::D("") << "Clearing select fds and closing server socket..." << std::endl;
+        FD_CLR(serverFd, &fds);
+        close(serverFd);
+    });
     
     //Listener loop
-    while(!sTerminate){
-        FD_SET(serverFd, &sFdSet);
+    bool terminated = false;
+    utils::PushBackFinalizeCallback([&](void)->void{
+        //Log::D("") << "Setting terminated flag..." << std::endl;
+        terminated = true;
+    });
+    while(!terminated){
+        FD_SET(serverFd, &fds);
         
-        if(select(max_fd, &sFdSet, nullptr, nullptr, nullptr) < 0){
+        if(select(max_fd, &fds, nullptr, nullptr, nullptr) < 0){
             if(errno == EINTR) continue;
             else{
                 perror("Select error: ");
             }
         }else{
             //Check fds
-            if(FD_ISSET(serverFd, &sFdSet)){
+            if(FD_ISSET(serverFd, &fds)){
                 /*TODO: Handle request*/
             }
         }

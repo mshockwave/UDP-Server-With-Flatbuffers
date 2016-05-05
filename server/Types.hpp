@@ -9,6 +9,8 @@ typedef uint8_t ubyte_t;
 
 typedef std::function<ssize_t(const byte_t*)> ResponseWriter;
 
-const char PATH_SEPARATOR = '/';
+#define PATH_SEPARATOR '/'
+
+#define ACCOUNT_FILE_NAME "accounts.json"
 
 #endif
