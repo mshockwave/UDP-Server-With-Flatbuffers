@@ -1,0 +1,9 @@
+include "types.fbs";
+
+namespace fbs;
+
+table RequestPacket {
+  path:string;
+  payload:[byte];
+}
+root_type RequestPacket;

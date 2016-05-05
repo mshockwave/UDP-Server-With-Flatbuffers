@@ -1,0 +1,18 @@
+namespace fbs;
+
+table Session {
+    token:string;
+}
+
+enum Status:byte {
+    OK = 0,
+    AUTH_ERROR = 1,
+    USER_EXIST = 2,
+    UNKNOWN_ERROR = 3
+}
+
+table GeneralResponse {
+  session:Session;
+  status_code:Status;
+}
+root_type GeneralResponse;
