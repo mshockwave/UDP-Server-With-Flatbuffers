@@ -1,0 +1,10 @@
+include "../types.fbs";
+
+namespace fbs.account;
+
+/*Login*/
+table LoginRequest {
+    username:string;
+    password:string;
+}
+root_type LoginRequest;

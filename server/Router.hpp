@@ -42,9 +42,7 @@ private:
     
     boost::property_tree::basic_ptree<std::string, HandleFunc> callback_tree;
     
-    inline boost::property_tree::path get_path(const std::string &path){
-        return boost::property_tree::path(path, PATH_SEPARATOR);
-    }
+    
 };
 
 #endif

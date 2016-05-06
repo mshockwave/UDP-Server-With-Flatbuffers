@@ -10,8 +10,8 @@ set(INCLUDE_DIR
 include_directories(${INCLUDE_DIR})
 
 set(FLATBUFFER_SCHEMA_HEADERS
-        flatbuffers/include/schemas/account_generated.h
-        flatbuffers/include/schemas/post_generated.h
+        flatbuffers/include/schemas/account.h
+        flatbuffers/include/schemas/post.h
         flatbuffers/include/schemas/types_generated.h
         flatbuffers/include/schemas/packet_generated.h)
 

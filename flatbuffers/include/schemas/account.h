@@ -1,0 +1,6 @@
+#include "register_generated.h"
+#include "login_generated.h"
+#include "logout_req_generated.h"
+#include "logout_resp_generated.h"
+#include "remove_req_generated.h"
+#include "remove_resp_generated.h"

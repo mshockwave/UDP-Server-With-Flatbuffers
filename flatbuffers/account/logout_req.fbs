@@ -1,0 +1,9 @@
+include "../types.fbs";
+
+namespace fbs.account;
+
+/*Logout*/
+table LogoutRequest {
+    session:Session;
+}
+root_type LogoutRequest;

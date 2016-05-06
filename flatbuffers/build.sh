@@ -1,5 +1,5 @@
 #!/bin/bash
 
-for f in $(ls *.fbs);do
+for f in $(find . -name "*.fbs");do
   flatc -o include/schemas/ -c $f 
 done

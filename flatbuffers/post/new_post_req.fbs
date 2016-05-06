@@ -1,0 +1,12 @@
+include "../types.fbs";
+include "post_perm.fbs";
+
+namespace fbs.post;
+
+/*New Article*/
+table NewPostRequest {
+  session:Session;
+  content:string;
+  psermission:PostPermission;
+}
+root_type NewPostRequest;

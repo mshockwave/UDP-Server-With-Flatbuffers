@@ -1,0 +1,12 @@
+include "../types.fbs";
+include "post_perm.fbs";
+
+namespace fbs.post;
+
+/*Edit Article Permission*/
+table EditPostPermissionRequest{
+  session:Session;
+  post_id:ulong;
+  permission:PostPermission;
+}
+root_type EditPostPermissionRequest;

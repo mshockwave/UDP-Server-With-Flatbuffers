@@ -21,20 +21,20 @@ Router& Router::Path(std::string path, HandleFunc func){
      * The solution is simple: trim all the prefixing or suffixing '/'s in each path.
      */
     TRIM_PATH_SEP(path);
-    callback_tree.put(get_path(path), func);
+    callback_tree.put(GetPath(path), func);
     return *this;
 }
 
 Router& Router::Path(std::string path, const Router &sub_router){
     TRIM_PATH_SEP(path);
-    callback_tree.put_child(get_path(path), sub_router.callback_tree);
+    callback_tree.put_child(GetPath(path), sub_router.callback_tree);
     return *this;
 }
 
 void Router::Process(const Request &request, const ResponseWriter &response_writer){
     std::string req_path = request.path()->str();
     TRIM_PATH_SEP(req_path);
-    HandleFunc callback = callback_tree.get(get_path(req_path), NotFoundHandler);
+    HandleFunc callback = callback_tree.get(GetPath(req_path), NotFoundHandler);
     callback(request, response_writer);
 }
 

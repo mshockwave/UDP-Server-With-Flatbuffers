@@ -1,0 +1,5 @@
+#include "post_perm_generated.h"
+#include "new_post_req_generated.h"
+#include "edit_post_req_generated.h"
+#include "edit_post_perm_req_generated.h"
+#include "remove_post_req_generated.h"

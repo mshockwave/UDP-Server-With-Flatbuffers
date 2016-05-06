@@ -1,0 +1,10 @@
+include "../types.fbs";
+
+namespace fbs.post;
+
+/*Delete Article*/
+table RemovePostRequest {
+  session:Session;
+  post_id:ulong;
+}
+root_type RemovePostRequest;

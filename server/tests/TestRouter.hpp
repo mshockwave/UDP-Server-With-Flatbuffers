@@ -27,7 +27,7 @@ private:
             Log::D("") << "Sub-Foo Handler. Path: " << RequestPathStr(request) << std::endl;
         });
         
-        auto empty_response_writer = [](const byte_t* content)->ssize_t {
+        auto empty_response_writer = [](const byte_t* content, size_t size)->ssize_t {
             return 0;
         };
         
@@ -88,7 +88,7 @@ private:
         
         main_router.Path("/foo/sub-namespace", sub_router);
         
-        auto empty_response_writer = [](const byte_t* content)->ssize_t {
+        auto empty_response_writer = [](const byte_t* content, size_t size)->ssize_t {
             return 0;
         };
         

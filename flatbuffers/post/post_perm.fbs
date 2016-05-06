@@ -1,0 +1,17 @@
+namespace fbs.post;
+
+enum PostPermissionType:byte {
+  PRIVATE = 0,
+  ANY = 1,
+  FRIENDS = 2,
+  POSTER_DEFINED = 4
+}
+
+table PostPermission {
+
+  /*Apply PostPermissionType on this as mask*/
+  type:byte = 0;
+
+  /*List of allowed user if type is POSTER_DEFINED*/
+  user_list:[string];
+}

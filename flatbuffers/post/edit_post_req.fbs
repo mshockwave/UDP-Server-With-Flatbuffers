@@ -1,0 +1,11 @@
+include "../types.fbs";
+
+namespace fbs.post;
+
+/*Edit Article*/
+table EditPostRequest {
+  session:Session;
+  post_id:ulong;
+  content:string;
+}
+root_type EditPostRequest;

@@ -8,7 +8,9 @@ enum Status:byte {
     OK = 0,
     AUTH_ERROR = 1,
     USER_EXIST = 2,
-    UNKNOWN_ERROR = 3
+    PAYLOAD_FORMAT_INVALID = 3,
+    REGISTER_INFO_INVALID = 4,
+    UNKNOWN_ERROR = 5
 }
 
 table GeneralResponse {

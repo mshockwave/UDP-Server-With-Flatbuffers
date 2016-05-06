@@ -1,0 +1,10 @@
+include "../types.fbs";
+
+namespace fbs.account;
+
+/*Register*/
+table RegisterRequest {
+    username:string;
+    password:string;
+}
+root_type RegisterRequest;

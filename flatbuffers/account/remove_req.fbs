@@ -1,0 +1,9 @@
+include "../types.fbs";
+
+namespace fbs.account;
+
+/*Delete Account*/
+table RemoveAccountRequest {
+    session:Session;
+}
+root_type RemoveAccountRequest;

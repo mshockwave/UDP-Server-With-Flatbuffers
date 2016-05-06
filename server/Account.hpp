@@ -6,7 +6,7 @@
 
 namespace handlers{
     
-    void InitAccountHandlers(Router*);
+    void InitAccountHandlers(Router&);
     
 }; //namespace handlers
 

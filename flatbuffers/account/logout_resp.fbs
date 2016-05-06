@@ -1,0 +1,8 @@
+include "../types.fbs";
+
+namespace fbs.account;
+
+table LogoutResponse {
+    status_code:Status;
+}
+root_type LogoutResponse;
