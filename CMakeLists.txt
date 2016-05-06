@@ -24,7 +24,8 @@ set(SERVER_SOURCE_FILES
         ${FLATBUFFER_SCHEMA_HEADERS}
         server/Router.hpp server/Router.cpp
         server/Types.hpp server/Types.cpp
-        server/Account.hpp server/Account.cpp)
+        server/Account.hpp server/Account.cpp
+        server/Session.hpp server/Session.cpp)
 add_executable(HW2_103062222_Ser ${SERVER_SOURCE_FILES} server/Main.cpp)
 set(SERVER_TEST_HEADER_FILES
         include/TestCase.hpp

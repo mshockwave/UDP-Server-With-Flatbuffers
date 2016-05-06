@@ -1,5 +1,6 @@
 
 #include "Account.hpp"
+#include "Session.hpp"
 #include <Utils.hpp>
 #include <schemas/account.h>
 
@@ -15,6 +16,7 @@ namespace handlers{
         void loadAccountFile(){
             using namespace boost::property_tree;
             try{
+                AccountProfiles.clear();
                 read_json(ACCOUNT_FILE_NAME, AccountProfiles);
             }catch(const json_parser_error& e){
                 Log::E("Account File Loader") << "Failed loading account file: " << e.message() << std::endl;
@@ -52,10 +54,18 @@ namespace handlers{
                 user_tree.put(GetPath(PROFILE_PASSWORD_KEY), password)
                             .put(GetPath(PROFILE_NIKNAME_KEY), username);
                 
-                
                 AccountProfiles.put_child(GetPath(username), user_tree);
                 
-                //TODO: Generate session token
+                {
+                    //Send response
+                    flatbuffers::FlatBufferBuilder builder;
+                    auto resp = fbs::CreateGeneralResponse(builder,
+                                                           session::NewSession(builder, username),
+                                                           fbs::Status_OK);
+                    fbs::FinishGeneralResponseBuffer(builder, resp);
+                    
+                    response_writer(builder.GetBufferPointer(), builder.GetSize());
+                }
             }else{
                 SendStatusResponse(fbs::Status_PAYLOAD_FORMAT_INVALID, response_writer);
             }
@@ -77,8 +87,7 @@ namespace handlers{
             }
         });
         
-        router.
-        Path("/register", account::handleRegister);
+        router.Path("/register", account::handleRegister);
     }
     
 }; //namespace handlers
