@@ -38,7 +38,7 @@ namespace handlers{
                 }
                 
                 using namespace boost::property_tree;
-                //Check account exist
+                //Check account existance
                 bool exist = true;
                 try{
                     AccountProfiles.get_child(GetPath(username));
@@ -51,8 +51,8 @@ namespace handlers{
                 }
                 
                 ptree user_tree;
-                user_tree.put(GetPath(PROFILE_PASSWORD_KEY), password)
-                            .put(GetPath(PROFILE_NIKNAME_KEY), username);
+                user_tree.put(GetPath(PROFILE_NIKNAME_KEY), username);
+                user_tree.put(GetPath(PROFILE_PASSWORD_KEY), password);
                 
                 AccountProfiles.put_child(GetPath(username), user_tree);
                 
@@ -67,6 +67,7 @@ namespace handlers{
                     response_writer(builder.GetBufferPointer(), builder.GetSize());
                 }
             }else{
+                Log::W("Account Handler") << "Paylod format invalid" << std::endl;
                 SendStatusResponse(fbs::Status_PAYLOAD_FORMAT_INVALID, response_writer);
             }
         };

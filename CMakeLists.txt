@@ -27,17 +27,22 @@ set(SERVER_SOURCE_FILES
         server/Account.hpp server/Account.cpp
         server/Session.hpp server/Session.cpp)
 add_executable(HW2_103062222_Ser ${SERVER_SOURCE_FILES} server/Main.cpp)
+
 set(SERVER_TEST_HEADER_FILES
+        include/IntegrateSerCliTest.hpp
         include/TestCase.hpp
-        server/tests/TestRouter.hpp)
+        server/tests/TestRouter.hpp
+        server/tests/IntegrateAccountTest.hpp)
 add_executable(ServerTests server/tests/TestMain.cpp
                           ${SERVER_SOURCE_FILES}
                           ${SERVER_TEST_HEADER_FILES})
+add_dependencies(ServerTests HW2_103062222_Ser)
 
 set(CLIENT_SOURCE_FILES
         ${SHARED_SOURCE_FILES}
         ${FLATBUFFER_SCHEMA_HEADERS})
 add_executable(HW2_103062222_Cli ${CLIENT_SOURCE_FILES} client/Main.cpp)
+
 set(CLIENT_TEST_HEADER_FILES
         include/TestCase.hpp)
 add_executable(ClientTests client/tests/TestMain.cpp

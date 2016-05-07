@@ -29,6 +29,9 @@ namespace utils{
     void InsertFinalizeCallback(unsigned int, const FinalizeCallback&);
     void DoFinalize();
     
+    //UDP stuff
+    int udp_connect(/*IPv4*/const char*, int);
+    
 }; //namespace utils
 
 #endif

@@ -15,6 +15,7 @@ extern "C"{
 #include <Log.hpp>
 #include <Utils.hpp>
 
+#include "Types.hpp"
 #include "Account.hpp"
 #include "Router.hpp"
 
@@ -27,12 +28,8 @@ extern "C"{
 #define SOCKET_BUFFER_SIZE  (240 * (1 << 10)) //240KB
 #endif
 
-#ifndef RECV_BUFFER_SIZE
-#define RECV_BUFFER_SIZE (2 * (1 << 10)) //2KB
-#endif
-
 static void sigKillHandle(int sig){
-    Log::V("Main") << "Cleaning up..." << std::endl;
+    Log::V("Server Main") << "Cleaning up..." << std::endl;
     utils::DoFinalize();
 }
 

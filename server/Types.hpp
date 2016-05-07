@@ -13,6 +13,10 @@
 typedef uint8_t byte_t;
 typedef int8_t sbyte_t;
 
+#ifndef RECV_BUFFER_SIZE
+#define RECV_BUFFER_SIZE (2 * (1 << 10)) //2KB
+#endif
+
 typedef std::function<ssize_t(const byte_t*, size_t)> ResponseWriter;
 
 inline void SendStatusResponse(fbs::Status status, const ResponseWriter& resp_writer){
