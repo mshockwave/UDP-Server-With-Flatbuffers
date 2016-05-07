@@ -15,6 +15,10 @@ namespace session {
     fbs_offset_type NewSession(flatbuffers::FlatBufferBuilder&, const std::string&);
     
     typedef std::string key_type;
+    
+    bool IsSessionExist(const fbs_type&);
+    void RemoveSession(const fbs_type&);
+    
     std::string GetStringValue(const fbs_type&, const key_type&);
     void PutStringValue(const fbs_type&, const key_type&, std::string&);
     

@@ -112,6 +112,61 @@ namespace handlers{
             }
         };
         
+        const HandleFunc handleLogout = HANDLE_FUNC(){
+            //Verify request
+            flatbuffers::Verifier verifier(request.payload()->Data(), request.payload()->size());
+            if(fbs::account::VerifyLogoutRequestBuffer(verifier)){
+                
+                auto* logout_req = fbs::account::GetLogoutRequest(request.payload()->Data());
+                
+                auto* session = logout_req->session();
+                
+                try{
+                    const auto& username = session::GetStringValue(*session,
+                                                                   session::SESSION_KEY_USERNAME);
+                    Log::V("Logout handler") << username << " logout" << std::endl;
+                    
+                    session::RemoveSession(*session);
+                    
+                    /*
+                    Log::D("Logout handler") << "Is session exist: " <<
+                                                session::IsSessionExist(*session) << std::endl;
+                     */
+                    {
+                        //Send logout response
+                        flatbuffers::FlatBufferBuilder builder;
+                        auto general_resp = fbs::CreateGeneralResponse(builder, 0,
+                                                                       fbs::Status_OK);
+                        fbs::FinishGeneralResponseBuffer(builder, general_resp);
+                        
+                        response_writer(builder.GetBufferPointer(), builder.GetSize());
+                    }
+                }catch(const session::BadTransformException &e){
+                    Log::W("Logout handler") << "Logout fail: " << e.cause <<std::endl;
+                    {
+                        //Send logout response
+                        flatbuffers::FlatBufferBuilder builder;
+                        auto general_resp = fbs::CreateGeneralResponse(builder, 0,
+                                                                       fbs::Status_UNKNOWN_ERROR);
+                        fbs::FinishGeneralResponseBuffer(builder, general_resp);
+                        
+                        response_writer(builder.GetBufferPointer(), builder.GetSize());
+                    }
+                }
+            }else{
+                Log::W("Account Logout Handler") << "Payload format invalid" << std::endl;
+                {
+                    //Send logout response
+                    flatbuffers::FlatBufferBuilder builder;
+                    auto general_resp = fbs::CreateGeneralResponse(builder, 0,
+                                                                   fbs::Status_PAYLOAD_FORMAT_INVALID);
+                    fbs::FinishGeneralResponseBuffer(builder, general_resp);
+                    
+                    response_writer(builder.GetBufferPointer(), builder.GetSize());
+                }
+            }
+        };
+        
     } //namespace account
     
     void InitAccountHandlers(Router& router){
@@ -129,7 +184,8 @@ namespace handlers{
         });
         
         router.Path("/register", account::handleRegister)
-        .Path("/login", account::handleLogin);
+        .Path("/login", account::handleLogin)
+        .Path("/logout", account::handleLogout);
     }
     
 }; //namespace handlers

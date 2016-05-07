@@ -28,6 +28,22 @@ namespace session {
         return new_session;
     }
     
+    bool IsSessionExist(const fbs_type &fbs_session){
+        auto token_str = fbs_session.token()->str();
+        return (SessionValueMap.find(token_str) != SessionValueMap.end());
+    }
+    
+    void RemoveSession(const fbs_type &fbs_session){
+        auto token_str = fbs_session.token()->str();
+        
+        session_value_map_it_type it_result;
+        if( (it_result = SessionValueMap.find(token_str)) != SessionValueMap.end()){
+            SessionValueMap.erase(it_result);
+        }else{
+            throw BadTransformException("Key not found");
+        }
+    }
+    
     std::string GetStringValue(const fbs_type &fbs_session, const key_type &key){
         auto token_str = fbs_session.token()->str();
         
