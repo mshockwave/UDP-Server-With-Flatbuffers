@@ -67,7 +67,47 @@ namespace handlers{
                     response_writer(builder.GetBufferPointer(), builder.GetSize());
                 }
             }else{
-                Log::W("Account Handler") << "Paylod format invalid" << std::endl;
+                Log::W("Account Register Handler") << "Payload format invalid" << std::endl;
+                SendStatusResponse(fbs::Status_PAYLOAD_FORMAT_INVALID, response_writer);
+            }
+        };
+        
+        const HandleFunc handleLogin = HANDLE_FUNC(){
+            //Verify request
+            flatbuffers::Verifier verifier(request.payload()->Data(), request.payload()->size());
+            if(fbs::account::VerifyLoginRequestBuffer(verifier)){
+                
+                auto* login_req = fbs::account::GetLoginRequest(request.payload()->Data());
+                
+                const auto& username = login_req->username()->str();
+                const auto& password = login_req->password()->str();
+                
+                using namespace boost::property_tree;
+                try{
+                    auto& account_tree = AccountProfiles.get_child(GetPath(username));
+                    
+                    const auto& password_correct = account_tree.get(GetPath(PROFILE_PASSWORD_KEY), "");
+                    if(password_correct == "" ||
+                       password_correct != password){
+                        SendStatusResponse(fbs::Status_AUTH_ERROR, response_writer);
+                        return;
+                    }
+                    
+                    //Generate new session
+                    {
+                        flatbuffers::FlatBufferBuilder builder;
+                        auto resp = fbs::CreateGeneralResponse(builder,
+                                                               session::NewSession(builder, username),
+                                                               fbs::Status_OK);
+                        fbs::FinishGeneralResponseBuffer(builder, resp);
+                        
+                        response_writer(builder.GetBufferPointer(), builder.GetSize());
+                    }
+                }catch(const ptree_bad_path&){
+                    SendStatusResponse(fbs::Status_AUTH_ERROR, response_writer);
+                }
+            }else{
+                Log::W("Account Login Handler") << "Payload format invalid" << std::endl;
                 SendStatusResponse(fbs::Status_PAYLOAD_FORMAT_INVALID, response_writer);
             }
         };
@@ -88,7 +128,8 @@ namespace handlers{
             }
         });
         
-        router.Path("/register", account::handleRegister);
+        router.Path("/register", account::handleRegister)
+        .Path("/login", account::handleLogin);
     }
     
 }; //namespace handlers
