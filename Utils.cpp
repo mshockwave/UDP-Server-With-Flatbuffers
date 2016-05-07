@@ -67,4 +67,23 @@ namespace utils {
         return sockFd;
     }
     
+    void ClientSendAndRead(int socket_fd,
+                           flatbuffers::FlatBufferBuilder& builder,
+                           const ResponseHandleFunc& callback){
+        ssize_t n_bytes;
+        if( (n_bytes = write(socket_fd, builder.GetBufferPointer(), builder.GetSize())) < 0){
+            callback(nullptr, n_bytes);
+            return;
+        }
+        
+        char recv_buffer[RECV_BUFFER_SIZE];
+        memset(recv_buffer, 0, sizeof(recv_buffer));
+        if( (n_bytes = read(socket_fd, recv_buffer, RECV_BUFFER_SIZE)) < 0){
+            callback(nullptr, n_bytes);
+            return;
+        }
+        
+        callback(recv_buffer, n_bytes);
+    }
+    
 }; //namespace handlers

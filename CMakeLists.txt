@@ -40,7 +40,10 @@ add_dependencies(ServerTests HW2_103062222_Ser)
 
 set(CLIENT_SOURCE_FILES
         ${SHARED_SOURCE_FILES}
-        ${FLATBUFFER_SCHEMA_HEADERS})
+        ${FLATBUFFER_SCHEMA_HEADERS}
+        client/Context.hpp client/Context.cpp
+        client/Account.hpp client/Account.cpp
+        client/Post.hpp client/Post.cpp)
 add_executable(HW2_103062222_Cli ${CLIENT_SOURCE_FILES} client/Main.cpp)
 
 set(CLIENT_TEST_HEADER_FILES

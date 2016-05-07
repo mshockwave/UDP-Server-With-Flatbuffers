@@ -16,8 +16,6 @@ extern "C"{
 #include <schemas/packet_generated.h>
 #include <boost/property_tree/ptree.hpp>
 
-//typedef fbs::RequestPacket Request;
-
 class RequestWrapper {
     
 public:
@@ -27,10 +25,10 @@ public:
     RequestWrapper(const fbs::RequestPacket& packet_,
                    const SocketAddrIn& client_addr_ = SocketAddrIn()) :
         client_addr(client_addr_),
-        packet(packet_){}
+        raw_packet(packet_){}
     
-    const flatbuffers::String* path()const{ return packet.path(); }
-    const flatbuffers::Vector<int8_t>* payload()const{ return packet.payload(); }
+    const flatbuffers::String* path()const{ return raw_packet.path(); }
+    const flatbuffers::Vector<int8_t>* payload()const{ return raw_packet.payload(); }
     
     const char* GetClientAddrStr(){
         return const_cast<const char*>(inet_ntoa(client_addr.sin_addr));
@@ -41,7 +39,7 @@ public:
     
 private:
     
-    const fbs::RequestPacket& packet;
+    const fbs::RequestPacket& raw_packet;
     
     const SocketAddrIn& client_addr;
 };

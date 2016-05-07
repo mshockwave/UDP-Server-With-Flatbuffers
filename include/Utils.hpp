@@ -6,6 +6,11 @@
 #include <functional>
 
 #include <schemas/packet_generated.h>
+#include <schemas/types_generated.h>
+
+#ifndef RECV_BUFFER_SIZE
+#define RECV_BUFFER_SIZE (2 * (1 << 10)) //2KB
+#endif
 
 namespace utils{
     
@@ -34,9 +39,35 @@ namespace utils{
     //Flatbuffers stuff
     void BuildRequest(const std::string&,
                       flatbuffers::FlatBufferBuilder&, flatbuffers::FlatBufferBuilder&);
+    inline std::string GetErrorVerbose(const fbs::Status& status){
+        switch(status){
+            case fbs::Status_OK:
+                return "OK";
+                
+            case fbs::Status_AUTH_ERROR:
+                return "Authorization Error";
+                
+            case fbs::Status_USER_EXIST:
+                return "User already exist";
+                
+            case fbs::Status_REGISTER_INFO_INVALID:
+                return "Registaration Error";
+                
+            case fbs::Status_PAYLOAD_FORMAT_INVALID:
+                return "Invalid Payload Format";
+                
+            default:
+                return "Unknown Error";
+        }
+    }
     
     //UDP stuff
     int udp_connect(/*IPv4*/const char*, int);
+    
+    typedef std::function<void(char*,ssize_t)> ResponseHandleFunc;
+    void ClientSendAndRead(int socket_fd,
+                           flatbuffers::FlatBufferBuilder& builder,
+                           const ResponseHandleFunc& callback);
     
 }; //namespace utils
 
