@@ -25,15 +25,10 @@ private:
                                                                 builder_register.CreateString("abcde"));
         fbs::account::FinishRegisterRequestBuffer(builder_register, register_req);
         
-        flatbuffers::FlatBufferBuilder builder_raw;
-        auto payload = builder_raw.CreateVector((int8_t*)builder_register.GetBufferPointer(),
-                                                builder_register.GetSize());
-        auto raw_req = fbs::CreateRequestPacket(builder_raw,
-                                                builder_raw.CreateString("/account/register"),
-                                                payload);
-        fbs::FinishRequestPacketBuffer(builder_raw, raw_req);
+        flatbuffers::FlatBufferBuilder builder_req;
+        utils::BuildRequest("/account/register", builder_req, builder_register);
         
-        if( write(sockFd, builder_raw.GetBufferPointer(), builder_raw.GetSize()) < 0){
+        if( write(sockFd, builder_req.GetBufferPointer(), builder_req.GetSize()) < 0){
             Log::E(mName) << "Fail sending register request to server" << std::endl;
             return false;
         }

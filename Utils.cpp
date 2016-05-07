@@ -36,6 +36,18 @@ namespace utils {
         }
     }
     
+    void BuildRequest(const std::string &path,
+                      flatbuffers::FlatBufferBuilder &builder_raw,
+                      flatbuffers::FlatBufferBuilder &builder_resp){
+        
+        auto payload = builder_raw.CreateVector((int8_t*)builder_resp.GetBufferPointer(),
+                                                builder_resp.GetSize());
+        auto raw_req = fbs::CreateRequestPacket(builder_raw,
+                                                builder_raw.CreateString(path),
+                                                payload);
+        fbs::FinishRequestPacketBuffer(builder_raw, raw_req);
+    }
+    
     int udp_connect(const char* address, int port){
         struct sockaddr_in server_addr;
         bzero(&server_addr, sizeof(server_addr));

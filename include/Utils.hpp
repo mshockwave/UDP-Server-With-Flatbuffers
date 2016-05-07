@@ -5,6 +5,8 @@
 #include <vector>
 #include <functional>
 
+#include <schemas/packet_generated.h>
+
 namespace utils{
     
     inline void TrimString(std::string &str, char ch = ' '){
@@ -28,6 +30,10 @@ namespace utils{
     void PushBackFinalizeCallback(const FinalizeCallback&);
     void InsertFinalizeCallback(unsigned int, const FinalizeCallback&);
     void DoFinalize();
+    
+    //Flatbuffers stuff
+    void BuildRequest(const std::string&,
+                      flatbuffers::FlatBufferBuilder&, flatbuffers::FlatBufferBuilder&);
     
     //UDP stuff
     int udp_connect(/*IPv4*/const char*, int);
