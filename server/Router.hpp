@@ -4,13 +4,50 @@
 #include <string>
 #include <functional>
 
+extern "C"{
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
+}
+
 #include <Log.hpp>
 #include "Types.hpp"
 
 #include <schemas/packet_generated.h>
 #include <boost/property_tree/ptree.hpp>
 
-typedef fbs::RequestPacket Request;
+//typedef fbs::RequestPacket Request;
+
+class RequestWrapper {
+    
+public:
+    
+    typedef struct sockaddr_in SocketAddrIn;
+    
+    RequestWrapper(const fbs::RequestPacket& packet_,
+                   const SocketAddrIn& client_addr_ = SocketAddrIn()) :
+        client_addr(client_addr_),
+        packet(packet_){}
+    
+    const flatbuffers::String* path()const{ return packet.path(); }
+    const flatbuffers::Vector<int8_t>* payload()const{ return packet.payload(); }
+    
+    const char* GetClientAddrStr(){
+        return const_cast<const char*>(inet_ntoa(client_addr.sin_addr));
+    }
+    int GetClientPort(){
+        return ntohs(client_addr.sin_port);
+    }
+    
+private:
+    
+    const fbs::RequestPacket& packet;
+    
+    const SocketAddrIn& client_addr;
+};
+
+typedef RequestWrapper Request;
+
 #define RequestPathStr(req) \
     (req).path()->str()
 

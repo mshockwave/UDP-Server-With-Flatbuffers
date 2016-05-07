@@ -36,9 +36,9 @@ private:
             flatbuffers::FlatBufferBuilder builder;
             auto result = fbs::CreateRequestPacket(builder, builder.CreateString("/foo"));
             fbs::FinishRequestPacketBuffer(builder, result);
-            const Request* req = fbs::GetRequestPacket(builder.GetBufferPointer());
+            Request req(*fbs::GetRequestPacket(builder.GetBufferPointer()));
             
-            router.Process(*req, empty_response_writer);
+            router.Process(req, empty_response_writer);
         }
         
         {
@@ -46,9 +46,9 @@ private:
             flatbuffers::FlatBufferBuilder builder;
             auto result = fbs::CreateRequestPacket(builder, builder.CreateString("/bar"));
             fbs::FinishRequestPacketBuffer(builder, result);
-            const Request* req = fbs::GetRequestPacket(builder.GetBufferPointer());
+            Request req(*fbs::GetRequestPacket(builder.GetBufferPointer()));
             
-            router.Process(*req, empty_response_writer);
+            router.Process(req, empty_response_writer);
         }
         
         {
@@ -56,9 +56,9 @@ private:
             flatbuffers::FlatBufferBuilder builder;
             auto result = fbs::CreateRequestPacket(builder, builder.CreateString("/foo/sub-foo"));
             fbs::FinishRequestPacketBuffer(builder, result);
-            const Request* req = fbs::GetRequestPacket(builder.GetBufferPointer());
+            Request req(*fbs::GetRequestPacket(builder.GetBufferPointer()));
             
-            router.Process(*req, empty_response_writer);
+            router.Process(req, empty_response_writer);
         }
         
         return true;
@@ -97,9 +97,9 @@ private:
             flatbuffers::FlatBufferBuilder builder;
             auto result = fbs::CreateRequestPacket(builder, builder.CreateString("/foo/sub-foo"));
             fbs::FinishRequestPacketBuffer(builder, result);
-            const Request* req = fbs::GetRequestPacket(builder.GetBufferPointer());
+            Request req(*fbs::GetRequestPacket(builder.GetBufferPointer()));
             
-            main_router.Process(*req, empty_response_writer);
+            main_router.Process(req, empty_response_writer);
         }
         
         {
@@ -107,9 +107,9 @@ private:
             flatbuffers::FlatBufferBuilder builder;
             auto result = fbs::CreateRequestPacket(builder, builder.CreateString("/foo/sub-namespace/dummy1"));
             fbs::FinishRequestPacketBuffer(builder, result);
-            const Request* req = fbs::GetRequestPacket(builder.GetBufferPointer());
+            Request req(*fbs::GetRequestPacket(builder.GetBufferPointer()));
             
-            main_router.Process(*req, empty_response_writer);
+            main_router.Process(req, empty_response_writer);
         }
         
         {
@@ -117,9 +117,9 @@ private:
             flatbuffers::FlatBufferBuilder builder;
             auto result = fbs::CreateRequestPacket(builder, builder.CreateString("/foo/sub-namespace/dummy1/dummy2"));
             fbs::FinishRequestPacketBuffer(builder, result);
-            const Request* req = fbs::GetRequestPacket(builder.GetBufferPointer());
+            Request req(*fbs::GetRequestPacket(builder.GetBufferPointer()));
             
-            main_router.Process(*req, empty_response_writer);
+            main_router.Process(req, empty_response_writer);
         }
         
         {
@@ -127,9 +127,9 @@ private:
             flatbuffers::FlatBufferBuilder builder;
             auto result = fbs::CreateRequestPacket(builder, builder.CreateString("/foo/sub-namespace/dummy3"));
             fbs::FinishRequestPacketBuffer(builder, result);
-            const Request* req = fbs::GetRequestPacket(builder.GetBufferPointer());
+            Request req(*fbs::GetRequestPacket(builder.GetBufferPointer()));
             
-            main_router.Process(*req, empty_response_writer);
+            main_router.Process(req, empty_response_writer);
         }
         
         return true;

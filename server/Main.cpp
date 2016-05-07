@@ -112,7 +112,9 @@ int main(int argc, char **argv){
                     //Verify request
                     flatbuffers::Verifier verifier(recv_buffer, static_cast<size_t>(n_bytes));
                     if(fbs::VerifyRequestPacketBuffer(verifier)){
-                        auto* raw_request = fbs::GetRequestPacket(recv_buffer);
+                        const auto& raw_request = *(fbs::GetRequestPacket(recv_buffer));
+                        
+                        Request request(raw_request, client_addr);
                         
                         //Delegate to router
                         const ResponseWriter resp_writer = [&](const byte_t* buffer, size_t buf_size)->ssize_t{
@@ -121,7 +123,7 @@ int main(int argc, char **argv){
                                           0,
                                           (struct sockaddr*)&client_addr, client_addr_len);
                         };
-                        root_router.Process(*raw_request, resp_writer);
+                        root_router.Process(request, resp_writer);
                     }else{
                         //TODO: Error verifying
                     }

@@ -6,7 +6,7 @@ int main(){
 
     //Add test cases
     std::vector<TestCase*> testCases;
-    //testCases.push_back(new TestRouter());
+    testCases.push_back(new TestRouter());
     testCases.push_back(new IntegrateAccountTest());
 
     std::vector<TestCase*>::iterator it = testCases.begin();
