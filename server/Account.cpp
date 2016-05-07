@@ -9,6 +9,17 @@
 
 static boost::property_tree::ptree AccountProfiles;
 
+namespace utils{
+    namespace account{
+        std::string GetNickName(const std::string& username){
+            std::string path(username);
+            path += PATH_SEPARATOR;
+            path += PROFILE_NIKNAME_KEY;
+            return AccountProfiles.get(GetPath(path), "");
+        }
+    } //namespace account
+} //namespace utils
+
 namespace handlers{
     
     namespace account {

@@ -7,6 +7,6 @@ namespace fbs.post;
 table NewPostRequest {
   session:Session;
   content:string;
-  psermission:PostPermission;
+  permission:PostPermission;
 }
 root_type NewPostRequest;

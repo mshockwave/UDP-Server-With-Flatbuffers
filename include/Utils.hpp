@@ -61,6 +61,11 @@ namespace utils{
         }
     }
     
+    //Account stuff
+    namespace account{
+        std::string GetNickName(const std::string& username);
+    } //namespace account
+    
     //UDP stuff
     int udp_connect(/*IPv4*/const char*, int);
     

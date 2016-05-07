@@ -30,6 +30,7 @@ inline void SendStatusResponse(fbs::Status status, const ResponseWriter& resp_wr
 #define PATH_SEPARATOR '/'
 
 #define ACCOUNT_FILE_NAME "accounts.json"
+#define POST_FILE_NAME "post.json"
 
 inline boost::property_tree::path GetPath(const std::string &path){
     return boost::property_tree::path(path, PATH_SEPARATOR);

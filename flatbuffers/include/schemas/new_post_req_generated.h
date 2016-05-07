@@ -26,15 +26,15 @@ struct NewPostRequest;
 struct NewPostRequest FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   const fbs::Session *session() const { return GetPointer<const fbs::Session *>(4); }
   const flatbuffers::String *content() const { return GetPointer<const flatbuffers::String *>(6); }
-  const fbs::post::PostPermission *psermission() const { return GetPointer<const fbs::post::PostPermission *>(8); }
+  const fbs::post::PostPermission *permission() const { return GetPointer<const fbs::post::PostPermission *>(8); }
   bool Verify(flatbuffers::Verifier &verifier) const {
     return VerifyTableStart(verifier) &&
            VerifyField<flatbuffers::uoffset_t>(verifier, 4 /* session */) &&
            verifier.VerifyTable(session()) &&
            VerifyField<flatbuffers::uoffset_t>(verifier, 6 /* content */) &&
            verifier.Verify(content()) &&
-           VerifyField<flatbuffers::uoffset_t>(verifier, 8 /* psermission */) &&
-           verifier.VerifyTable(psermission()) &&
+           VerifyField<flatbuffers::uoffset_t>(verifier, 8 /* permission */) &&
+           verifier.VerifyTable(permission()) &&
            verifier.EndTable();
   }
 };
@@ -44,7 +44,7 @@ struct NewPostRequestBuilder {
   flatbuffers::uoffset_t start_;
   void add_session(flatbuffers::Offset<fbs::Session> session) { fbb_.AddOffset(4, session); }
   void add_content(flatbuffers::Offset<flatbuffers::String> content) { fbb_.AddOffset(6, content); }
-  void add_psermission(flatbuffers::Offset<fbs::post::PostPermission> psermission) { fbb_.AddOffset(8, psermission); }
+  void add_permission(flatbuffers::Offset<fbs::post::PostPermission> permission) { fbb_.AddOffset(8, permission); }
   NewPostRequestBuilder(flatbuffers::FlatBufferBuilder &_fbb) : fbb_(_fbb) { start_ = fbb_.StartTable(); }
   NewPostRequestBuilder &operator=(const NewPostRequestBuilder &);
   flatbuffers::Offset<NewPostRequest> Finish() {
@@ -56,9 +56,9 @@ struct NewPostRequestBuilder {
 inline flatbuffers::Offset<NewPostRequest> CreateNewPostRequest(flatbuffers::FlatBufferBuilder &_fbb,
    flatbuffers::Offset<fbs::Session> session = 0,
    flatbuffers::Offset<flatbuffers::String> content = 0,
-   flatbuffers::Offset<fbs::post::PostPermission> psermission = 0) {
+   flatbuffers::Offset<fbs::post::PostPermission> permission = 0) {
   NewPostRequestBuilder builder_(_fbb);
-  builder_.add_psermission(psermission);
+  builder_.add_permission(permission);
   builder_.add_content(content);
   builder_.add_session(session);
   return builder_.Finish();

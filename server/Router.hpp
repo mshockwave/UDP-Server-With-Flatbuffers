@@ -30,10 +30,10 @@ public:
     const flatbuffers::String* path()const{ return raw_packet.path(); }
     const flatbuffers::Vector<int8_t>* payload()const{ return raw_packet.payload(); }
     
-    const char* GetClientAddrStr(){
+    const char* GetClientAddrStr() const {
         return const_cast<const char*>(inet_ntoa(client_addr.sin_addr));
     }
-    int GetClientPort(){
+    int GetClientPort() const {
         return ntohs(client_addr.sin_port);
     }
     
