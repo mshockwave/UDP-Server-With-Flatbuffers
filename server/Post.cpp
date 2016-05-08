@@ -118,6 +118,12 @@ namespace handlers {
                         
                         boost::property_tree::ptree& post_tree = Posts.get_child(GetPath(post_id_str));
                         
+                        //Check whether is poster
+                        auto poster_name = post_tree.get(GetPath(POSTER_NAME_KEY), "");
+                        if(poster_name.length() <= 0 || poster_name != username){
+                            throw session::BadTransformException("Not poster");
+                        }
+                        
                         auto req_content = edit_req->content()->str();
                         
                         post_tree.put(GetPath(CONTENT_KEY), req_content);

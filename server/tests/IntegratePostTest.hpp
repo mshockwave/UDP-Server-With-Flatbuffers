@@ -88,7 +88,6 @@ private:
             }
             
             auto* resp = fbs::GetGeneralResponse(buffer);
-            //Log::V(mName) << "Response status: " << (int)resp->status_code() << std::endl;
             if(resp->status_code() != fbs::Status_OK){
                 Log::E(mName) << "New Post failed: "
                 << utils::GetErrorVerbose(resp->status_code()) << std::endl;
@@ -97,6 +96,44 @@ private:
         });
         
         return post_result;
+    }
+    
+    bool testEditPost(int sockFd){
+        Log::V(mName) << "Testing Edit Post..." << std::endl;
+        
+        flatbuffers::FlatBufferBuilder builder_edit_post, builder_req;
+        
+        std::string content("This is modified post content");
+        
+        auto session_fbs = fbs::CreateSession(builder_edit_post,
+                                              builder_edit_post.CreateString(SessionToken));
+        
+        auto edit_post_req = fbs::post::CreateEditPostRequest(builder_edit_post,
+                                                              session_fbs,
+                                                              (uint64_t)1,
+                                                              builder_edit_post.CreateString(content));
+        fbs::post::FinishEditPostRequestBuffer(builder_edit_post, edit_post_req);
+        
+        utils::BuildRequest("/post/edit", builder_req, builder_edit_post);
+        
+        bool edit_result = true;
+        utils::ClientSendAndRead(sockFd, builder_req, [&](char* buffer, ssize_t n_bytes)->void{
+            //Parsing response
+            if(n_bytes < 0){
+                Log::E(mName) << "Edit Post failed" << std::endl;
+                edit_result &= false;
+                return;
+            }
+            
+            auto* resp = fbs::GetGeneralResponse(buffer);
+            if(resp->status_code() != fbs::Status_OK){
+                Log::E(mName) << "Edit Post failed: "
+                << utils::GetErrorVerbose(resp->status_code()) << std::endl;
+                edit_result &= false;
+            }
+        });
+        
+        return edit_result;
     }
     
     bool doClient(){
@@ -113,6 +150,7 @@ private:
             return result;
         }
         result &= testNewPost(sockFd);
+        result &= testEditPost(sockFd);
         
         close(sockFd);
         
