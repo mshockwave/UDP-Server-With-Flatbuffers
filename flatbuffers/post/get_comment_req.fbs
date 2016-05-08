@@ -1,0 +1,11 @@
+include "../types.fbs";
+
+namespace fbs.post;
+
+table GetCommentRequest {
+  session:Session;
+
+  post_id:ulong;
+  comment_id:ulong;
+}
+root_type GetCommentRequest;

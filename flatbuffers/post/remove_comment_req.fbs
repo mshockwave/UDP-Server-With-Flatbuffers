@@ -1,0 +1,11 @@
+include "../types.fbs";
+
+namespace fbs.post;
+
+table RemoveCommentRequest {
+  session:Session;
+
+  post_id:ulong;
+  comment_id:ulong;
+}
+root_type RemoveCommentRequest;

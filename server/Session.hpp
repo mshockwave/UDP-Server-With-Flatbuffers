@@ -3,7 +3,7 @@
 
 #include <string>
 
-#include <schemas/types_generated.h>
+#include <schemas/core.h>
 
 namespace session {
     

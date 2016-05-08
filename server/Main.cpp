@@ -20,7 +20,7 @@ extern "C"{
 #include "Account.hpp"
 #include "Post.hpp"
 
-#include <schemas/types_generated.h>
+#include <schemas/core.h>
 
 #define SERVER_USAGE \
     "Usage: %s <server port>\n"

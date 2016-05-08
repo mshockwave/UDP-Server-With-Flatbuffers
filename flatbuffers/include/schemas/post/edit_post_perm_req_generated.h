@@ -5,9 +5,6 @@
 
 #include "flatbuffers/flatbuffers.h"
 
-#include "types_generated.h"
-#include "post_perm_generated.h"
-
 namespace fbs {
 struct Session;
 struct GeneralResponse;

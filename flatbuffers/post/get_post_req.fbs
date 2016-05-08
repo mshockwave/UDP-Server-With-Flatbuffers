@@ -1,0 +1,9 @@
+include "../types.fbs";
+
+namespace fbs.post;
+
+table GetPostRequest {
+  session:Session;
+  post_id:ulong;
+}
+root_type GetPostRequest;

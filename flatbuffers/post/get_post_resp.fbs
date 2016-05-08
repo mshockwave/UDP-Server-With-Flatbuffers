@@ -1,0 +1,16 @@
+include "../types.fbs";
+
+namespace fbs.post;
+
+table GetPostResponse {
+  status_code:Status;
+  session:Session; //Reserve
+ 
+  poster_name:string;
+  poster_nickname:string;
+  poster_addr:string;
+  content:string;
+  timestamp:string;
+  like_num:int;
+}
+root_type GetPostResponse;

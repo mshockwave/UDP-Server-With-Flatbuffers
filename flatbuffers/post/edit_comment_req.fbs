@@ -1,0 +1,12 @@
+include "../types.fbs";
+
+namespace fbs.post;
+
+table EditCommentRequest {
+  session:Session;
+
+  post_id:ulong;
+  comment_id:ulong;
+  content:string;
+}
+root_type EditCommentRequest;

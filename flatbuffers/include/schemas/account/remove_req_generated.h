@@ -5,8 +5,6 @@
 
 #include "flatbuffers/flatbuffers.h"
 
-#include "types_generated.h"
-
 namespace fbs {
 struct Session;
 struct GeneralResponse;

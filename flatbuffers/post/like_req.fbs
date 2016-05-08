@@ -1,0 +1,11 @@
+include "../types.fbs";
+
+namespace fbs.post;
+
+table LikeRequest{
+  session:Session;
+
+  post_id:ulong;
+  like_num:int; //negative to dislike
+}
+root_type LikeRequest;

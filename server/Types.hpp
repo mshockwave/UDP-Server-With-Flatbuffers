@@ -7,7 +7,7 @@
 
 #include <boost/property_tree/ptree.hpp>
 
-#include <schemas/types_generated.h>
+#include <schemas/core.h>
 #include "Session.hpp"
 
 typedef uint8_t byte_t;

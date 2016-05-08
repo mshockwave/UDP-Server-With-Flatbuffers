@@ -5,8 +5,7 @@
 #include <vector>
 #include <functional>
 
-#include <schemas/packet_generated.h>
-#include <schemas/types_generated.h>
+#include <schemas/core.h>
 
 #ifndef RECV_BUFFER_SIZE
 #define RECV_BUFFER_SIZE (2 * (1 << 10)) //2KB

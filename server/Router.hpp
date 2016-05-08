@@ -13,7 +13,7 @@ extern "C"{
 #include <Log.hpp>
 #include "Types.hpp"
 
-#include <schemas/packet_generated.h>
+#include <schemas/core.h>
 #include <boost/property_tree/ptree.hpp>
 
 class RequestWrapper {
