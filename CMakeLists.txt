@@ -12,8 +12,7 @@ include_directories(${INCLUDE_DIR})
 set(FLATBUFFER_SCHEMA_HEADERS
         flatbuffers/include/schemas/account.h
         flatbuffers/include/schemas/post.h
-        flatbuffers/include/schemas/types_generated.h
-        flatbuffers/include/schemas/packet_generated.h)
+        flatbuffers/include/schemas/core.h)
 
 set(SHARED_SOURCE_FILES
         include/Log.hpp Log.cpp
@@ -33,7 +32,8 @@ set(SERVER_TEST_HEADER_FILES
         include/IntegrateSerCliTest.hpp
         include/TestCase.hpp
         server/tests/TestRouter.hpp
-        server/tests/IntegrateAccountTest.hpp)
+        server/tests/IntegrateAccountTest.hpp
+        server/tests/IntegratePostTest.hpp)
 add_executable(ServerTests server/tests/TestMain.cpp
                           ${SERVER_SOURCE_FILES}
                           ${SERVER_TEST_HEADER_FILES})

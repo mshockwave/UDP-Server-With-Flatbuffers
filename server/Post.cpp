@@ -102,7 +102,85 @@ namespace handlers {
         };
         
         const HandleFunc handleEditPost = HANDLE_FUNC(){
-            
+            //Verify request
+            flatbuffers::Verifier verifier(request.payload()->Data(), request.payload()->size());
+            if(fbs::post::VerifyEditPostRequestBuffer(verifier)){
+                
+                auto* edit_req = fbs::post::GetEditPostRequest(request.payload()->Data());
+                const auto* session = edit_req->session();
+                
+                if(session::IsSessionExist(*session)){
+                    try{
+                        
+                        auto username = session::GetStringValue(*session, session::SESSION_KEY_USERNAME);
+                        
+                        auto post_id_str = std::to_string(edit_req->post_id());
+                        
+                        boost::property_tree::ptree& post_tree = Posts.get_child(GetPath(post_id_str));
+                        
+                        auto req_content = edit_req->content()->str();
+                        
+                        post_tree.put(GetPath(CONTENT_KEY), req_content);
+                        
+                        SendStatusResponse(fbs::Status_OK, response_writer);
+                    }catch(const session::BadTransformException&){
+                        SendStatusResponse(fbs::Status_AUTH_ERROR, response_writer);
+                    }catch(const boost::property_tree::ptree_bad_path&){
+                        SendStatusResponse(fbs::Status_INVALID_REQUEST_ARGUMENT, response_writer);
+                    }
+                }else{
+                    SendStatusResponse(fbs::Status_AUTH_ERROR, response_writer);
+                }
+            }else{
+                Log::W("Edit Post Handler") << "Payload format invalid" << std::endl;
+                SendStatusResponse(fbs::Status_PAYLOAD_FORMAT_INVALID, response_writer);
+            }
+        };
+        
+        const HandleFunc handleEditPostPerm = HANDLE_FUNC(){
+            //Verify request
+            flatbuffers::Verifier verifier(request.payload()->Data(), request.payload()->size());
+            if(fbs::post::VerifyEditPostPermissionRequestBuffer(verifier)){
+                
+                auto* edit_req = fbs::post::GetEditPostPermissionRequest(request.payload()->Data());
+                const auto* session = edit_req->session();
+                
+                if(session::IsSessionExist(*session)){
+                    try{
+                        
+                        auto username = session::GetStringValue(*session, session::SESSION_KEY_USERNAME);
+                        
+                        auto post_id_str = std::to_string(edit_req->post_id());
+                        
+                        boost::property_tree::ptree& post_tree = Posts.get_child(GetPath(post_id_str));
+                        
+                        auto perm_mask = edit_req->permission()->type();
+                        const auto* perm_user_list = edit_req->permission()->user_list();
+                        
+                        post_tree.put(GetPath(PERM_MASK_KEY), (int)perm_mask);
+                        auto it_user = perm_user_list->begin();
+                        for(; it_user != perm_user_list->end(); ++it_user){
+                            if(it_user == perm_user_list->begin()){
+                                //Replace
+                                post_tree.put(GetPath(PERM_GRANTED_KEY), it_user->str());
+                            }else{
+                                post_tree.add(GetPath(PERM_GRANTED_KEY), it_user->str());
+                            }
+                        }
+                        
+                        SendStatusResponse(fbs::Status_OK, response_writer);
+                    }catch(const session::BadTransformException&){
+                        SendStatusResponse(fbs::Status_AUTH_ERROR, response_writer);
+                    }catch(const boost::property_tree::ptree_bad_path&){
+                        SendStatusResponse(fbs::Status_INVALID_REQUEST_ARGUMENT, response_writer);
+                    }
+                }else{
+                    SendStatusResponse(fbs::Status_AUTH_ERROR, response_writer);
+                }
+            }else{
+                Log::W("Edit Post Perm Handler") << "Payload format invalid" << std::endl;
+                SendStatusResponse(fbs::Status_PAYLOAD_FORMAT_INVALID, response_writer);
+            }
         };
         
     } //namespace post
@@ -122,7 +200,8 @@ namespace handlers {
         });
         
         router.Path("/new", post::handleNewPost)
-        .Path("/edit", post::handleEditPost);
+        .Path("/edit", post::handleEditPost)
+        .Path("/edit/perm", post::handleEditPostPerm);
     }
     
 } //namespace handlers

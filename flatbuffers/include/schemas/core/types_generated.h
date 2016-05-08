@@ -17,11 +17,12 @@ enum Status {
   Status_USER_EXIST = 2,
   Status_PAYLOAD_FORMAT_INVALID = 3,
   Status_REGISTER_INFO_INVALID = 4,
-  Status_UNKNOWN_ERROR = 5
+  Status_INVALID_REQUEST_ARGUMENT = 5,
+  Status_UNKNOWN_ERROR = 6
 };
 
 inline const char **EnumNamesStatus() {
-  static const char *names[] = { "OK", "AUTH_ERROR", "USER_EXIST", "PAYLOAD_FORMAT_INVALID", "REGISTER_INFO_INVALID", "UNKNOWN_ERROR", nullptr };
+  static const char *names[] = { "OK", "AUTH_ERROR", "USER_EXIST", "PAYLOAD_FORMAT_INVALID", "REGISTER_INFO_INVALID", "INVALID_REQUEST_ARGUMENT", "UNKNOWN_ERROR", nullptr };
   return names;
 }
 
