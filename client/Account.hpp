@@ -9,13 +9,7 @@
 
 namespace account {
     
-    void handleRegister();
-    
-    void handleLogin();
-    
-    void handleLogout();
-    
-    void handleProfile();
+    void InitScreens();
     
 } //namespace account
 
