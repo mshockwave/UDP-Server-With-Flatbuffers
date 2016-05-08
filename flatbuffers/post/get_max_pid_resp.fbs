@@ -1,0 +1,10 @@
+include "../types.fbs";
+
+namespace fbs.post;
+
+table GetMaxPidResponse{
+  status_code:Status;
+  session:Session; //Reserve;
+  max_post_id:ulong;
+}
+root_type GetMaxPidResponse;

@@ -4,6 +4,8 @@
 #include "post/edit_post_req_generated.h"
 #include "post/get_comment_req_generated.h"
 #include "post/get_comment_resp_generated.h"
+#include "post/get_max_pid_req_generated.h"
+#include "post/get_max_pid_resp_generated.h"
 #include "post/get_post_req_generated.h"
 #include "post/get_post_resp_generated.h"
 #include "post/like_req_generated.h"

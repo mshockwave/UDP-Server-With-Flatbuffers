@@ -25,8 +25,19 @@ namespace handlers {
         const char* POSTER_ADDR_KEY = "addr"; //string
         const char* CONTENT_KEY = "content";
         const char* TIMESTAMP_KEY = "timestamp"; //string
-        const char* COMMENTS_KEY = "comments"; //array of comment
         const char* LIKES_NUM_KEY = "likes"; //number
+        const char* COMMENTS_KEY = "comments"; //array of comment
+        /*
+         comments: {
+            0:{
+                user: "username",
+                content: "This is content"
+            }
+            ...
+         }
+         */
+        const char* COMMENT_USER_KEY = "user";
+        const char* COMMENT_CONTENT_KEY = "content";
         
         void loadPostFile(){
             using namespace boost::property_tree;
@@ -134,6 +145,44 @@ namespace handlers {
             }else{
                 Log::W("New Post Handler") << "Payload format invalid" << std::endl;
                 SendStatusResponse(fbs::Status_PAYLOAD_FORMAT_INVALID, response_writer);
+            }
+        };
+        
+        const HandleFunc handleGetMaxPid = HANDLE_FUNC(){
+            
+            const auto send_status = [&response_writer](fbs::Status status)->void{
+                flatbuffers::FlatBufferBuilder builder;
+                auto resp = fbs::post::CreateGetMaxPidResponse(builder,
+                                                               status);
+                fbs::post::FinishGetMaxPidResponseBuffer(builder, resp);
+                response_writer(builder.GetBufferPointer(), builder.GetSize());
+            };
+            
+            //Verify request
+            flatbuffers::Verifier verifier(request.payload()->Data(), request.payload()->size());
+            if(fbs::post::VerifyGetMaxPidRequestBuffer(verifier)){
+                
+                auto* req = fbs::post::GetGetMaxPidRequest(request.payload()->Data());
+                const auto* session = req->session();
+                
+                if(session::IsSessionExist(*session)){
+                    
+                    long max_post_id = Posts.get(GetPath(LAST_POST_ID), 0L);
+                    
+                    flatbuffers::FlatBufferBuilder builder;
+                    auto resp = fbs::post::CreateGetMaxPidResponse(builder,
+                                                                   fbs::Status_OK,
+                                                                   0,
+                                                                   static_cast<uint64_t>(max_post_id));
+                    fbs::post::FinishGetMaxPidResponseBuffer(builder, resp);
+                    response_writer(builder.GetBufferPointer(), builder.GetSize());
+                }else{
+                    send_status(fbs::Status_AUTH_ERROR);
+                }
+                
+            }else{
+                Log::W("Get Max Pid Handler") << "Payload format invalid" << std::endl;
+                send_status(fbs::Status_PAYLOAD_FORMAT_INVALID);
             }
         };
         
@@ -305,7 +354,8 @@ namespace handlers {
         router.Path("/new", post::handleNewPost)
         .Path("/edit", post::handleEditPost)
         .Path("/edit/perm", post::handleEditPostPerm)
-        .Path("/view", post::handleViewPost);
+        .Path("/view", post::handleViewPost)
+        .Path("/view/maxPid", post::handleGetMaxPid);
     }
     
 } //namespace handlers
