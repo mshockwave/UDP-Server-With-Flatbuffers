@@ -18,8 +18,10 @@ namespace handlers {
         const char* LAST_POST_ID = "lastPostId";
         const char* POSTER_NAME_KEY = "account";
         const char* POSTER_NICKNAME_KEY = "nickname";
+        const char* PERM_TREE_KEY = "permission";
         const char* PERM_MASK_KEY = "permission/mask"; //number(bits mask)
         const char* PERM_GRANTED_KEY = "permission/granted"; //string array
+        const char* PERM_GRANTED_NODE_KEY = "granted";
         const char* POSTER_ADDR_KEY = "addr"; //string
         const char* CONTENT_KEY = "content";
         const char* TIMESTAMP_KEY = "timestamp"; //string
@@ -35,6 +37,40 @@ namespace handlers {
                 Log::E("Post File Loader") << "Failed loading post file: " << e.message() << std::endl;
             }
         }
+        
+        /*
+        bool canViewPost(const boost::property_tree::ptree& post_tree,
+                         const std::string& username){
+            try{
+                
+                std::string poster = post_tree.get(GetPath(POSTER_NAME_KEY), "");
+                if(poster.length() <= 0) return false;
+                if(poster == username) return true;
+                
+                int perm_mask = post_tree.get(GetPath(PERM_MASK_KEY),
+                                              fbs::post::PostPermissionType_ANY);
+                
+                if( (perm_mask & (int)fbs::post::PostPermissionType_ANY) != 0){
+                    return true;
+                }
+                
+                if( (perm_mask & (int)fbs::post::PostPermissionType_POSTER_DEFINED) != 0){
+                    auto& granted_tree = post_tree.get_child(GetPath(PERM_TREE_KEY));
+                    auto it_granted = granted_tree.begin();
+                    for(; it_granted != granted_tree.end(); ++it_granted){
+                        if(it_granted->first == PERM_GRANTED_NODE_KEY){
+                            //const std::string& name = it_granted->second.data();
+                            //if(username == name) return true;
+                        }
+                    }
+                }
+                
+                return false;
+            }catch(const boost::property_tree::ptree_bad_path&){
+                return false;
+            }
+        }
+         */
         
         const HandleFunc handleNewPost = HANDLE_FUNC(){
             //Verify request
@@ -98,6 +134,67 @@ namespace handlers {
             }else{
                 Log::W("New Post Handler") << "Payload format invalid" << std::endl;
                 SendStatusResponse(fbs::Status_PAYLOAD_FORMAT_INVALID, response_writer);
+            }
+        };
+        
+        const HandleFunc handleViewPost = HANDLE_FUNC(){
+            
+            const auto send_status = [&response_writer](fbs::Status status)->void{
+                flatbuffers::FlatBufferBuilder builder;
+                auto resp = fbs::post::CreateGetPostResponse(builder,
+                                                             status);
+                fbs::post::FinishGetPostResponseBuffer(builder, resp);
+                response_writer(builder.GetBufferPointer(), builder.GetSize());
+            };
+            
+            //Verify request
+            flatbuffers::Verifier verifier(request.payload()->Data(), request.payload()->size());
+            if(fbs::post::VerifyGetPostRequestBuffer(verifier)){
+                
+                auto* view_req = fbs::post::GetGetPostRequest(request.payload()->Data());
+                const auto* session = view_req->session();
+                
+                if(session::IsSessionExist(*session)){
+                    
+                    using namespace boost::property_tree;
+                    try{
+                        
+                        auto username = session::GetStringValue(*session, session::SESSION_KEY_USERNAME);
+                        auto nickname = utils::account::GetNickName(username);
+                        auto post_id = view_req->post_id();
+                        
+                        //TODO: Permission check
+                        ptree& post_tree = Posts.get_child(GetPath(std::to_string(post_id)));
+                        
+                        auto addr_str = post_tree.get(GetPath(POSTER_ADDR_KEY), "");
+                        auto content = post_tree.get(GetPath(CONTENT_KEY), "");
+                        auto post_time_str = post_tree.get(GetPath(TIMESTAMP_KEY), "");
+                        utils::TrimString(post_time_str, '\n');
+                        int like_num = post_tree.get(GetPath(LIKES_NUM_KEY), 0);
+                        
+                        flatbuffers::FlatBufferBuilder builder;
+                        auto view_resp = fbs::post::CreateGetPostResponse(builder,
+                                                                          fbs::Status_OK, 0,
+                                                                          builder.CreateString(username),
+                                                                          builder.CreateString(nickname),
+                                                                          builder.CreateString(addr_str),
+                                                                          builder.CreateString(content),
+                                                                          builder.CreateString(post_time_str),
+                                                                          like_num);
+                        fbs::post::FinishGetPostResponseBuffer(builder, view_resp);
+                        response_writer(builder.GetBufferPointer(), builder.GetSize());
+                    }catch(const session::BadTransformException&){
+                        send_status(fbs::Status_AUTH_ERROR);
+                    }catch(const ptree_bad_path&){
+                        send_status(fbs::Status_INVALID_REQUEST_ARGUMENT);
+                    }
+                    
+                }else{
+                    send_status(fbs::Status_AUTH_ERROR);
+                }
+            }else{
+                Log::W("View Post Handler") << "Payload format invalid" << std::endl;
+                send_status(fbs::Status_PAYLOAD_FORMAT_INVALID);
             }
         };
         
@@ -207,7 +304,8 @@ namespace handlers {
         
         router.Path("/new", post::handleNewPost)
         .Path("/edit", post::handleEditPost)
-        .Path("/edit/perm", post::handleEditPostPerm);
+        .Path("/edit/perm", post::handleEditPostPerm)
+        .Path("/view", post::handleViewPost);
     }
     
 } //namespace handlers

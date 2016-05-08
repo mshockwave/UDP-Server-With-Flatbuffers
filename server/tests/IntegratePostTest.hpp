@@ -136,6 +136,48 @@ private:
         return edit_result;
     }
     
+    bool testViewPost(int sockFd){
+        Log::V(mName) << "Testing View Post..." << std::endl;
+        
+        flatbuffers::FlatBufferBuilder builder_view_post, builder_req;
+        
+        auto session_fbs = fbs::CreateSession(builder_view_post,
+                                              builder_view_post.CreateString(SessionToken));
+        
+        auto edit_post_req = fbs::post::CreateGetPostRequest(builder_view_post,
+                                                             session_fbs,
+                                                             (uint64_t)1);
+        fbs::post::FinishGetPostRequestBuffer(builder_view_post, edit_post_req);
+        
+        utils::BuildRequest("/post/view", builder_req, builder_view_post);
+        
+        bool view_result = true;
+        utils::ClientSendAndRead(sockFd, builder_req, [&](char* buffer, ssize_t n_bytes)->void{
+            //Parsing response
+            if(n_bytes < 0){
+                Log::E(mName) << "View Post failed" << std::endl;
+                view_result &= false;
+                return;
+            }
+            
+            auto* resp = fbs::post::GetGetPostResponse(buffer);
+            if(resp->status_code() != fbs::Status_OK){
+                Log::E(mName) << "View Post failed: "
+                << utils::GetErrorVerbose(resp->status_code()) << std::endl;
+                view_result &= false;
+            }else{
+                Log::V(mName) << "Post content: " << resp->content()->str() << std::endl;
+                Log::V(mName) << "Poster name: " << resp->poster_name()->str() << std::endl;
+                Log::V(mName) << "Poster nickname: " << resp->poster_nickname()->str() << std::endl;
+                Log::V(mName) << "Post time: " << resp->timestamp()->str() << std::endl;
+                Log::V(mName) << "Poster address: " << resp->poster_addr()->str() << std::endl;
+                Log::V(mName) << "Like number: " << (int)resp->like_num() << std::endl;
+            }
+        });
+        
+        return view_result;
+    }
+    
     bool doClient(){
         
         Log::V(mName) << "Connecting to localhost:" << TEST_SERVER_PORT << "..." << std::endl;
@@ -151,6 +193,7 @@ private:
         }
         result &= testNewPost(sockFd);
         result &= testEditPost(sockFd);
+        result &= testViewPost(sockFd);
         
         close(sockFd);
         
