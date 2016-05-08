@@ -13,6 +13,10 @@ namespace context {
     
     extern const char PROMPT_CHAR;
     
+    namespace post{
+        extern long CurrentPid, MaxPid;
+    } //namespace post
+    
     inline void PrintDivideLine(){
         int i;
         for(i = 0; i < 30; i++) std::cout << '=';
@@ -30,7 +34,8 @@ namespace context {
         
         //Post
         ADD_POST = 7,
-        EDIT_POST = 8
+        EDIT_POST = 8,
+        VIEW_POST = 9
     };
     
     typedef std::function<Screen(void)> ScreenHandler;

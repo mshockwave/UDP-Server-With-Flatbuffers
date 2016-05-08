@@ -22,6 +22,12 @@ namespace account {
         auto next_screen = context::Screen::MAIN;
         const auto response_callback = [&next_screen](char *response, ssize_t n_bytes)->void{
             
+            if(n_bytes < 0){
+                std::cout << "Communication Error" << std::endl;
+                next_screen = context::Screen::STAY;
+                return;
+            }
+            
             flatbuffers::Verifier verifier((uint8_t*)response, static_cast<size_t>(n_bytes));
             if(fbs::VerifyGeneralResponseBuffer(verifier)){
                 auto* resp = fbs::GetGeneralResponse(response);
@@ -65,6 +71,13 @@ namespace account {
         
         auto next_screen = context::Screen::MAIN;
         const auto response_callback = [&next_screen](char *response, ssize_t n_bytes)->void{
+            
+            if(n_bytes < 0){
+                std::cout << "Communication Error" << std::endl;
+                next_screen = context::Screen::STAY;
+                return;
+            }
+            
             flatbuffers::Verifier verifier((uint8_t*)response, static_cast<size_t>(n_bytes));
             if(fbs::VerifyGeneralResponseBuffer(verifier)){
                 auto* resp = fbs::GetGeneralResponse(response);
@@ -101,6 +114,13 @@ namespace account {
         
         auto next_screen = context::Screen::ENTRY;
         const auto response_callback = [&next_screen](char *response, ssize_t n_bytes)->void{
+            
+            if(n_bytes < 0){
+                std::cout << "Communication Error" << std::endl;
+                next_screen = context::Screen::STAY;
+                return;
+            }
+            
             flatbuffers::Verifier verifier((uint8_t*)response, static_cast<size_t>(n_bytes));
             if(fbs::account::VerifyLogoutResponseBuffer(verifier)){
                 auto* resp = fbs::account::GetLogoutResponse(response);

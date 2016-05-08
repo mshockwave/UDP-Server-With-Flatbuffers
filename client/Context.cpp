@@ -12,6 +12,11 @@ namespace context {
     
     const char PROMPT_CHAR = '>';
     
+    namespace post{
+        long MaxPid = -1;
+        long CurrentPid = -1;
+    } //namespace post
+    
     ScreenHandler& GetScreen(Screen scr){
         auto it_screen = ScreenMap.find(scr);
         return (it_screen == ScreenMap.end())? ScreenMap[Screen::ENTRY] : (it_screen->second);
@@ -55,7 +60,7 @@ namespace context {
         AddScreen(Screen::MAIN, SCREEN_HANDLER(){
             PrintDivideLine();
             
-            std::cout << "[A]dd Post\t" << "[E]dit Post" << std::endl;
+            std::cout << "[A]dd Post\t" << "[V]iew Posts" << std::endl;
             std::cout << "[L]ogout" << std::endl;
             std::cout << PROMPT_CHAR;
             
@@ -67,8 +72,8 @@ namespace context {
                     return Screen::ADD_POST;
                 }
                     
-                case 'e':{
-                    return Screen::EDIT_POST;
+                case 'v':{
+                    return Screen::VIEW_POST;
                 }
                 
                 case 'l':{
