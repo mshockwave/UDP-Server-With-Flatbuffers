@@ -55,6 +55,9 @@ namespace utils{
             case fbs::Status_PAYLOAD_FORMAT_INVALID:
                 return "Invalid Payload Format";
                 
+            case fbs::Status_PERMISSION_DENIED:
+                return "Permission Denied";
+                
             default:
                 return "Unknown Error";
         }

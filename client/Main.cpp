@@ -49,7 +49,7 @@ int main(int argc, char **argv){
     do{
         
         const auto& handler = context::GetScreen(screen);
-        auto next_screen = handler();
+        auto next_screen = handler(screen);
         if(next_screen != context::Screen::STAY){
             screen = next_screen;
         }

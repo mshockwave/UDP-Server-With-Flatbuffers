@@ -35,12 +35,15 @@ namespace context {
         //Post
         ADD_POST = 7,
         EDIT_POST = 8,
-        VIEW_POST = 9
+        VIEW_NEXT_POST = 9,
+        VIEW_PREV_POST = 10,
+        LIKE_POST = 11,
+        UNLIKE_POST = 12
     };
     
-    typedef std::function<Screen(void)> ScreenHandler;
+    typedef std::function<Screen(Screen)> ScreenHandler;
 #define SCREEN_HANDLER() \
-    [](void)->context::Screen
+    [](context::Screen current_screen)->context::Screen
     
     ScreenHandler& GetScreen(Screen scr);
     void AddScreen(Screen scr, const ScreenHandler& handler);

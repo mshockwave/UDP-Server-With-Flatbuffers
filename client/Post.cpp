@@ -115,6 +115,7 @@ namespace post {
         
         utils::BuildRequest("/post/view", builder_req, builder_view_post);
         
+        bool skip = false;
         utils::ClientSendAndRead(context::SocketFd, builder_req, [&](char* buffer, ssize_t n_bytes)->void{
             //Parsing response
             if(n_bytes < 0){
@@ -126,8 +127,12 @@ namespace post {
             auto* resp = fbs::post::GetGetPostResponse(buffer);
             auto status_code = resp->status_code();
             if(status_code != fbs::Status_OK){
-                std::cout << "Error: " << utils::GetErrorVerbose(status_code) << std::endl;
-                next_screen = context::Screen::MAIN;
+                if(status_code == fbs::Status_PERMISSION_DENIED){
+                    skip = true;
+                }else{
+                    std::cout << "Error: " << utils::GetErrorVerbose(status_code) << std::endl;
+                    next_screen = context::Screen::MAIN;
+                }
             }else{
                 std::cout << "Poster: " << resp->poster_name()->str() << " "
                             << resp->poster_nickname()->str() << " "
@@ -141,6 +146,31 @@ namespace post {
             }
         });
         
+        if(skip){
+            switch(current_screen){
+                case context::Screen::VIEW_NEXT_POST:{
+                    if(context::post::CurrentPid < context::post::MaxPid){
+                        context::post::CurrentPid++;
+                        return context::Screen::STAY;
+                    }else{
+                        return context::Screen::MAIN;
+                    }
+                }
+                    
+                case context::Screen::VIEW_PREV_POST:{
+                    if(context::post::CurrentPid > 1){
+                        context::post::CurrentPid--;
+                        return context::Screen::STAY;
+                    }else{
+                        return context::Screen::MAIN;
+                    }
+                }
+                    
+                default:
+                    break;
+            }
+        }
+        
         std::cout << std::endl;
         if(context::post::CurrentPid > 1){
             std::cout << "[P]revious Post\t";
@@ -148,6 +178,8 @@ namespace post {
         if(context::post::CurrentPid < context::post::MaxPid){
             std::cout << "[N]ext Post" << std::endl;
         }
+        std::cout << "[L]ike This post" << std::endl;
+        std::cout << "[U]nlike This post" << std::endl;
         std::cout << "[B]ack" << std::endl;
         
         std::cout << context::PROMPT_CHAR;
@@ -158,6 +190,7 @@ namespace post {
             case 'n':{
                 if(context::post::CurrentPid < context::post::MaxPid){
                     context::post::CurrentPid++;
+                    next_screen = context::Screen::VIEW_NEXT_POST;
                 }else{
                     std::cout << "Unrecognized command: " << input_char << std::endl;
                 }
@@ -167,9 +200,19 @@ namespace post {
             case 'p':{
                 if(context::post::CurrentPid > 1){
                     context::post::CurrentPid--;
+                    next_screen = context::Screen::VIEW_PREV_POST;
                 }else{
                     std::cout << "Unrecognized command: " << input_char << std::endl;
                 }
+                break;
+            }
+                
+            case 'l':{
+                next_screen = context::Screen::LIKE_POST;
+                break;
+            }
+            case 'u':{
+                next_screen = context::Screen::UNLIKE_POST;
                 break;
             }
                 
@@ -183,9 +226,58 @@ namespace post {
         return next_screen;
     };
     
+    const context::ScreenHandler handleLike = SCREEN_HANDLER(){
+        
+        context::PrintDivideLine();
+        
+        auto next_screen = context::Screen::VIEW_NEXT_POST;
+        
+        flatbuffers::FlatBufferBuilder builder_like, builder_req;
+        
+        int like_num = 0;
+        if(current_screen == context::Screen::LIKE_POST){
+            like_num = 1;
+        }else if(current_screen == context::Screen::UNLIKE_POST){
+            like_num = -1;
+        }else{
+            return next_screen;
+        }
+        
+        auto session = fbs::CreateSession(builder_like,
+                                          builder_like.CreateString(context::CurrentTokenStr));
+        auto like_req = fbs::post::CreateLikeRequest(builder_like,
+                                                     session,
+                                                     (int)context::post::CurrentPid,
+                                                     (int)like_num);
+        fbs::post::FinishLikeRequestBuffer(builder_like, like_req);
+        
+        utils::BuildRequest("/post/like", builder_req, builder_like);
+        
+        utils::ClientSendAndRead(context::SocketFd,
+                                 builder_req, [&next_screen](char* buffer, ssize_t n_bytes)->void{
+                                     //Parsing response
+                                     if(n_bytes < 0){
+                                         std::cout << "Communication Error" << std::endl;
+                                         return;
+                                     }
+                                     
+                                     auto* resp = fbs::GetGeneralResponse(buffer);
+                                     if(resp->status_code() != fbs::Status_OK){
+                                         std::cout << "Error: ";
+                                     }
+                                     
+                                     std::cout << utils::GetErrorVerbose(resp->status_code()) << std::endl;
+                                 });
+        
+        return next_screen;
+    };
+    
     void InitScreens(){
         context::AddScreen(context::Screen::ADD_POST, handleAddPost);
-        context::AddScreen(context::Screen::VIEW_POST, handleViewPost);
+        context::AddScreen(context::Screen::VIEW_NEXT_POST, handleViewPost);
+        context::AddScreen(context::Screen::VIEW_PREV_POST, handleViewPost);
+        context::AddScreen(context::Screen::LIKE_POST, handleLike);
+        context::AddScreen(context::Screen::UNLIKE_POST, handleLike);
     }
     
 } //namespace post

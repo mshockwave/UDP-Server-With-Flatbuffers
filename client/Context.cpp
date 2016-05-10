@@ -73,7 +73,7 @@ namespace context {
                 }
                     
                 case 'v':{
-                    return Screen::VIEW_POST;
+                    return Screen::VIEW_NEXT_POST;
                 }
                 
                 case 'l':{
