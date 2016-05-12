@@ -388,6 +388,49 @@ namespace handlers {
             }
         };
         
+        const HandleFunc handleRemovePost = HANDLE_FUNC(){
+            //Verify request
+            flatbuffers::Verifier verifier(request.payload()->Data(), request.payload()->size());
+            if(fbs::post::VerifyRemovePostRequestBuffer(verifier)){
+                
+                auto* remove_req = fbs::post::GetRemovePostRequest(request.payload()->Data());
+                const auto* session = remove_req->session();
+                
+                if(session::IsSessionExist(*session)){
+                    
+                    using namespace boost::property_tree;
+                    
+                    try{
+                        
+                        auto username = session::GetStringValue(*session, session::SESSION_KEY_USERNAME);
+                        auto post_id = remove_req->post_id();
+                        auto post_id_str = std::to_string(post_id);
+                        boost::property_tree::ptree& post_tree = Posts.get_child(GetPath(post_id_str));
+                        
+                        auto post_owner = post_tree.get(GetPath(POSTER_NAME_KEY), "");
+                        if(post_owner.length() <= 0 || post_owner != username){
+                            SendStatusResponse(fbs::Status_PERMISSION_DENIED, response_writer);
+                            return;
+                        }
+                        
+                        Posts.erase(post_id_str);
+                        
+                        SendStatusResponse(fbs::Status_OK, response_writer);
+                    }catch(const ptree_bad_path&){
+                        SendStatusResponse(fbs::Status_INVALID_REQUEST_ARGUMENT, response_writer);
+                    }catch(const session::BadTransformException&){
+                        SendStatusResponse(fbs::Status_AUTH_ERROR, response_writer);
+                    }
+                    
+                }else{
+                    SendStatusResponse(fbs::Status_AUTH_ERROR, response_writer);
+                }
+            }else{
+                Log::W("Remove Post Handler") << "Payload format invalid" << std::endl;
+                SendStatusResponse(fbs::Status_PAYLOAD_FORMAT_INVALID, response_writer);
+            }
+        };
+        
         const HandleFunc handleAddComment = HANDLE_FUNC(){
             //Verify request
             flatbuffers::Verifier verifier(request.payload()->Data(), request.payload()->size());
@@ -526,6 +569,7 @@ namespace handlers {
         .Path("/edit/perm", post::handleEditPostPerm)
         .Path("/view", post::handleViewPost)
         .Path("/view/maxPid", post::handleGetMaxPid)
+        .Path("/remove", post::handleRemovePost)
         .Path("/like", post::handleLike)
         .Path("/comment/add", post::handleAddComment)
         .Path("/comment/view", post::handleViewComment);

@@ -57,8 +57,6 @@ namespace post {
     
     const context::ScreenHandler handleViewPost = SCREEN_HANDLER(){
         
-        context::PrintDivideLine();
-        
         auto next_screen = context::Screen::STAY;
         
         if(context::post::CurrentPid <= 0){
@@ -119,6 +117,7 @@ namespace post {
         bool skip = false;
         bool can_edit = false;
         utils::ClientSendAndRead(context::SocketFd, builder_req, [&](char* buffer, ssize_t n_bytes)->void{
+            
             //Parsing response
             if(n_bytes < 0){
                 std::cout << "Communication Error" << std::endl;
@@ -129,13 +128,19 @@ namespace post {
             auto* resp = fbs::post::GetGetPostResponse(buffer);
             auto status_code = resp->status_code();
             if(status_code != fbs::Status_OK){
+                /*
                 if(status_code == fbs::Status_PERMISSION_DENIED){
                     skip = true;
                 }else{
                     std::cout << "Error: " << utils::GetErrorVerbose(status_code) << std::endl;
                     next_screen = context::Screen::MAIN;
                 }
+                 */
+                skip = true;
             }else{
+                
+                context::PrintDivideLine();
+                
                 std::cout << "Poster: " << resp->poster_name()->str() << " "
                             << resp->poster_nickname()->str() << " "
                             << resp->poster_addr()->str() << std::endl;
@@ -194,6 +199,7 @@ namespace post {
         std::cout << std::endl;
         if(can_edit){
             std::cout << "[E]dit\t";
+            std::cout << "[R]emove" << std::endl;
         }
         std::cout << "[B]ack" << std::endl;
         
@@ -225,6 +231,14 @@ namespace post {
             case 'e':{
                 if(can_edit){
                     next_screen = context::Screen::EDIT_POST;
+                }else{
+                    std::cout << "Unrecognized command: " << input_char << std::endl;
+                }
+                break;
+            }
+            case 'r':{
+                if(can_edit){
+                    next_screen = context::Screen::REMOVE_POST;
                 }else{
                     std::cout << "Unrecognized command: " << input_char << std::endl;
                 }
@@ -399,6 +413,49 @@ namespace post {
         return next_screen;
     };
     
+    const context::ScreenHandler handleRemovePost = SCREEN_HANDLER(){
+        
+        auto next_screen = context::Screen::VIEW_NEXT_POST;
+        
+        std::cout << "Are you sure? [Y/n]: ";
+        char input_char;
+        std::cin >> input_char;
+        
+        if(std::tolower(input_char) == 'y'){
+            flatbuffers::FlatBufferBuilder builder_remove, builder_req;
+            
+            auto session = fbs::CreateSession(builder_remove,
+                                              builder_remove.CreateString(context::CurrentTokenStr));
+            auto remove_req = fbs::post::CreateRemovePostRequest(builder_remove,
+                                                                 session,
+                                                                 (uint64_t)context::post::CurrentPid);
+            fbs::post::FinishRemovePostRequestBuffer(builder_remove, remove_req);
+            
+            utils::BuildRequest("/post/remove", builder_req, builder_remove);
+            
+            utils::ClientSendAndRead(context::SocketFd, builder_req,
+                                     [&next_screen](char* buffer, ssize_t n_bytes)->void{
+                                         //Parsing response
+                                         if(n_bytes < 0){
+                                             std::cout << "Communication Error" << std::endl;
+                                             return;
+                                         }
+                                         
+                                         auto* resp = fbs::GetGeneralResponse(buffer);
+                                         if(resp->status_code() != fbs::Status_OK){
+                                             std::cout << "Error: ";
+                                         }else{
+                                             //Reset post info
+                                             context::post::MaxPid = context::post::CurrentPid = -1;
+                                         }
+                                         
+                                         std::cout << utils::GetErrorVerbose(resp->status_code()) << std::endl;
+                                     });
+        }
+        
+        return next_screen;
+    };
+    
     const context::ScreenHandler handleAddComment = SCREEN_HANDLER(){
         
         context::PrintDivideLine();
@@ -473,12 +530,7 @@ namespace post {
             auto* resp = fbs::post::GetGetCommentResponse(buffer);
             auto status_code = resp->status_code();
             if(status_code != fbs::Status_OK){
-                if(status_code == fbs::Status_PERMISSION_DENIED){
-                    skip = true;
-                }else{
-                    std::cout << "Error: " << utils::GetErrorVerbose(status_code) << std::endl;
-                    next_screen = context::Screen::MAIN;
-                }
+                skip = true;
             }else{
                 std::cout << resp->commenter()->str() << ": " << resp->content()->str() << std::endl;
             }
@@ -486,18 +538,18 @@ namespace post {
         
         if(skip){
             switch(current_screen){
-                case context::Screen::VIEW_NEXT_POST:{
-                    if(context::post::CurrentPid < context::post::MaxPid){
-                        context::post::CurrentPid++;
+                case context::Screen::VIEW_NEXT_COMMENTS:{
+                    if(context::post::CurrentCid < context::post::MaxCid){
+                        context::post::CurrentCid++;
                         return context::Screen::STAY;
                     }else{
                         return context::Screen::MAIN;
                     }
                 }
                     
-                case context::Screen::VIEW_PREV_POST:{
-                    if(context::post::CurrentPid > 1){
-                        context::post::CurrentPid--;
+                case context::Screen::VIEW_PREV_COMMENTS:{
+                    if(context::post::CurrentCid > 1){
+                        context::post::CurrentCid--;
                         return context::Screen::STAY;
                     }else{
                         return context::Screen::MAIN;
@@ -611,6 +663,7 @@ namespace post {
         context::AddScreen(context::Screen::EDIT_POST, handleEditPost);
         context::AddScreen(context::Screen::VIEW_NEXT_POST, handleViewPost);
         context::AddScreen(context::Screen::VIEW_PREV_POST, handleViewPost);
+        context::AddScreen(context::Screen::REMOVE_POST, handleRemovePost);
         context::AddScreen(context::Screen::ADD_COMMENT, handleAddComment);
         context::AddScreen(context::Screen::VIEW_PREV_COMMENTS, handleViewComment);
         context::AddScreen(context::Screen::VIEW_NEXT_COMMENTS, handleViewComment);

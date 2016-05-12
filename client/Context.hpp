@@ -44,7 +44,9 @@ namespace context {
         UNLIKE_POST = 12,
         ADD_COMMENT = 13,
         VIEW_NEXT_COMMENTS = 14,
-        VIEW_PREV_COMMENTS = 15
+        VIEW_PREV_COMMENTS = 15,
+        REMOVE_POST = 16,
+        REMOVE_COMMENT = 17
     };
     
     typedef std::function<Screen(Screen)> ScreenHandler;
