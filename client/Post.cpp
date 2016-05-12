@@ -1,4 +1,5 @@
 #include <vector>
+#include <boost/tokenizer.hpp>
 
 #include "Post.hpp"
 #include "Context.hpp"
@@ -116,6 +117,7 @@ namespace post {
         utils::BuildRequest("/post/view", builder_req, builder_view_post);
         
         bool skip = false;
+        bool can_edit = false;
         utils::ClientSendAndRead(context::SocketFd, builder_req, [&](char* buffer, ssize_t n_bytes)->void{
             //Parsing response
             if(n_bytes < 0){
@@ -137,6 +139,7 @@ namespace post {
                 std::cout << "Poster: " << resp->poster_name()->str() << " "
                             << resp->poster_nickname()->str() << " "
                             << resp->poster_addr()->str() << std::endl;
+                can_edit = (resp->poster_name()->str() == context::Username);
                 
                 std::cout << "Content: " << resp->content()->str() << std::endl;
                 
@@ -189,6 +192,9 @@ namespace post {
             std::cout << "\t[V]iew Comments";
         }
         std::cout << std::endl;
+        if(can_edit){
+            std::cout << "[E]dit\t";
+        }
         std::cout << "[B]ack" << std::endl;
         
         std::cout << context::PROMPT_CHAR;
@@ -210,6 +216,15 @@ namespace post {
                 if(context::post::CurrentPid > 1){
                     context::post::CurrentPid--;
                     next_screen = context::Screen::VIEW_PREV_POST;
+                }else{
+                    std::cout << "Unrecognized command: " << input_char << std::endl;
+                }
+                break;
+            }
+                
+            case 'e':{
+                if(can_edit){
+                    next_screen = context::Screen::EDIT_POST;
                 }else{
                     std::cout << "Unrecognized command: " << input_char << std::endl;
                 }
@@ -239,6 +254,146 @@ namespace post {
                 next_screen = context::Screen::MAIN;
                 break;
             }
+        }
+        
+        return next_screen;
+    };
+    
+    const context::ScreenHandler handleEditPost = SCREEN_HANDLER(){
+        
+        context::PrintDivideLine();
+        
+        auto next_screen = context::Screen::VIEW_NEXT_POST;
+        
+        std::cout << "Edit Post [C]ontent" << std::endl;
+        std::cout << "Edit Post [P]ermission" << std::endl;
+        std::cout << context::PROMPT_CHAR;
+        
+        char input_char;
+        std::cin >> input_char;
+        if(std::tolower(input_char) == 'c'){
+            
+            std::cout << "Enter Content: " ;
+            std::string content("");
+            std::cin.ignore();
+            std::getline(std::cin, content);
+            
+            flatbuffers::FlatBufferBuilder builder_edit, builder_req;
+            auto session = fbs::CreateSession(builder_edit,
+                                              builder_edit.CreateString(context::CurrentTokenStr));
+            auto edit_req = fbs::post::CreateEditPostRequest(builder_edit,
+                                                             session,
+                                                             (uint64_t)context::post::CurrentPid,
+                                                             builder_edit.CreateString(content));
+            fbs::post::FinishEditPostRequestBuffer(builder_edit, edit_req);
+            
+            utils::BuildRequest("/post/edit", builder_req, builder_edit);
+            
+            utils::ClientSendAndRead(context::SocketFd, builder_req,
+                                     [&next_screen](char* buffer, ssize_t n_bytes)->void{
+                                         //Parsing response
+                                         if(n_bytes < 0){
+                                             std::cout << "Communication Error" << std::endl;
+                                             return;
+                                         }
+                                         
+                                         auto* resp = fbs::GetGeneralResponse(buffer);
+                                         if(resp->status_code() != fbs::Status_OK){
+                                             std::cout << "Error: ";
+                                         }
+                                         
+                                         std::cout << utils::GetErrorVerbose(resp->status_code()) << std::endl;
+                                     });
+            
+        }else if(std::tolower(input_char) == 'p'){
+            
+            std::cout << "[1] Only You" << std::endl;
+            std::cout << "[2] Public" << std::endl;
+            std::cout << "[3] Friends" << std::endl;
+            std::cout << "[4] Specific Users" << std::endl;
+            std::cout << context::PROMPT_CHAR;
+            
+            std::cin >> input_char;
+            auto perm_mask = fbs::post::PostPermissionType_ANY;
+            switch(input_char){
+                case '1':{
+                    perm_mask = fbs::post::PostPermissionType_PRIVATE;
+                    break;
+                }
+                    
+                case '2':{
+                    perm_mask = fbs::post::PostPermissionType_ANY;
+                    break;
+                }
+                
+                case '3':{
+                    perm_mask = fbs::post::PostPermissionType_FRIENDS;
+                    break;
+                }
+                    
+                case '4':{
+                    perm_mask = fbs::post::PostPermissionType_POSTER_DEFINED;
+                    break;
+                }
+                    
+                default:{
+                    std::cout << "Unrecognized comment: " << input_char << std::endl;
+                    return context::Screen::STAY;
+                }
+            }
+            
+            flatbuffers::FlatBufferBuilder builder_edit, builder_req;
+            
+            std::vector< flatbuffers::Offset<flatbuffers::String> > dummy_perms;
+            
+            if(perm_mask == fbs::post::PostPermissionType_POSTER_DEFINED){
+                std::cout << "Enter users that can view(separated by comma): " << std::endl;
+                std::cout << "->" ;
+                std::cin.ignore();
+                std::string users("");
+                std::getline(std::cin, users);
+                
+                utils::TrimString(users, ',');
+                boost::char_separator<char> separator(", ");
+                boost::tokenizer< boost::char_separator<char> > tokens(users, separator);
+                for(auto token : tokens){
+                    dummy_perms.push_back(builder_edit.CreateString(token));
+                }
+            }
+            
+            auto perm = fbs::post::CreatePostPermission(builder_edit,
+                                                        perm_mask,
+                                                        builder_edit.CreateVector(dummy_perms));
+            
+            auto session = fbs::CreateSession(builder_edit,
+                                              builder_edit.CreateString(context::CurrentTokenStr));
+            auto edit_req = fbs::post::CreateEditPostPermissionRequest(builder_edit,
+                                                                       session,
+                                                                       (uint64_t)context::post::CurrentPid,
+                                                                       perm);
+            fbs::post::FinishEditPostPermissionRequestBuffer(builder_edit, edit_req);
+            
+            utils::BuildRequest("/post/edit/perm", builder_req, builder_edit);
+            
+            utils::ClientSendAndRead(context::SocketFd, builder_req,
+                                     [&next_screen](char* buffer, ssize_t n_bytes)->void{
+                                         //Parsing response
+                                         if(n_bytes < 0){
+                                             std::cout << "Communication Error" << std::endl;
+                                             return;
+                                         }
+                                         
+                                         auto* resp = fbs::GetGeneralResponse(buffer);
+                                         if(resp->status_code() != fbs::Status_OK){
+                                             std::cout << "Error: ";
+                                         }
+                                         
+                                         std::cout << utils::GetErrorVerbose(resp->status_code()) << std::endl;
+                                     });
+            
+        }else{
+            std::cout << "Unrecognized comment: " << input_char << std::endl;
+            next_screen = context::Screen::STAY;
         }
         
         return next_screen;
@@ -453,6 +608,7 @@ namespace post {
     
     void InitScreens(){
         context::AddScreen(context::Screen::ADD_POST, handleAddPost);
+        context::AddScreen(context::Screen::EDIT_POST, handleEditPost);
         context::AddScreen(context::Screen::VIEW_NEXT_POST, handleViewPost);
         context::AddScreen(context::Screen::VIEW_PREV_POST, handleViewPost);
         context::AddScreen(context::Screen::ADD_COMMENT, handleAddComment);
