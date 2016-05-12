@@ -24,6 +24,7 @@ struct GetPostResponse FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   const flatbuffers::String *content() const { return GetPointer<const flatbuffers::String *>(14); }
   const flatbuffers::String *timestamp() const { return GetPointer<const flatbuffers::String *>(16); }
   int32_t like_num() const { return GetField<int32_t>(18, 0); }
+  uint64_t max_comment_id() const { return GetField<uint64_t>(20, 0); }
   bool Verify(flatbuffers::Verifier &verifier) const {
     return VerifyTableStart(verifier) &&
            VerifyField<int8_t>(verifier, 4 /* status_code */) &&
@@ -40,6 +41,7 @@ struct GetPostResponse FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
            VerifyField<flatbuffers::uoffset_t>(verifier, 16 /* timestamp */) &&
            verifier.Verify(timestamp()) &&
            VerifyField<int32_t>(verifier, 18 /* like_num */) &&
+           VerifyField<uint64_t>(verifier, 20 /* max_comment_id */) &&
            verifier.EndTable();
   }
 };
@@ -55,10 +57,11 @@ struct GetPostResponseBuilder {
   void add_content(flatbuffers::Offset<flatbuffers::String> content) { fbb_.AddOffset(14, content); }
   void add_timestamp(flatbuffers::Offset<flatbuffers::String> timestamp) { fbb_.AddOffset(16, timestamp); }
   void add_like_num(int32_t like_num) { fbb_.AddElement<int32_t>(18, like_num, 0); }
+  void add_max_comment_id(uint64_t max_comment_id) { fbb_.AddElement<uint64_t>(20, max_comment_id, 0); }
   GetPostResponseBuilder(flatbuffers::FlatBufferBuilder &_fbb) : fbb_(_fbb) { start_ = fbb_.StartTable(); }
   GetPostResponseBuilder &operator=(const GetPostResponseBuilder &);
   flatbuffers::Offset<GetPostResponse> Finish() {
-    auto o = flatbuffers::Offset<GetPostResponse>(fbb_.EndTable(start_, 8));
+    auto o = flatbuffers::Offset<GetPostResponse>(fbb_.EndTable(start_, 9));
     return o;
   }
 };
@@ -71,8 +74,10 @@ inline flatbuffers::Offset<GetPostResponse> CreateGetPostResponse(flatbuffers::F
    flatbuffers::Offset<flatbuffers::String> poster_addr = 0,
    flatbuffers::Offset<flatbuffers::String> content = 0,
    flatbuffers::Offset<flatbuffers::String> timestamp = 0,
-   int32_t like_num = 0) {
+   int32_t like_num = 0,
+   uint64_t max_comment_id = 0) {
   GetPostResponseBuilder builder_(_fbb);
+  builder_.add_max_comment_id(max_comment_id);
   builder_.add_like_num(like_num);
   builder_.add_timestamp(timestamp);
   builder_.add_content(content);

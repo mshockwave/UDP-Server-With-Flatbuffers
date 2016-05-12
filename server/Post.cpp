@@ -26,16 +26,18 @@ namespace handlers {
         const char* CONTENT_KEY = "content";
         const char* TIMESTAMP_KEY = "timestamp"; //string
         const char* LIKES_NUM_KEY = "likes"; //number
-        const char* COMMENTS_KEY = "comments"; //array of comment
+        const char* COMMENT_TREE_KEY = "comments"; //array of comment
         /*
          comments: {
             0:{
                 user: "username",
                 content: "This is content"
-            }
+            },
             ...
+            lastCommentId: N
          }
          */
+        const char* COMMENT_MAX_COMMENT_ID = "lastCommentId";
         const char* COMMENT_USER_KEY = "user";
         const char* COMMENT_CONTENT_KEY = "content";
         
@@ -224,6 +226,10 @@ namespace handlers {
                         utils::TrimString(post_time_str, '\n');
                         int like_num = post_tree.get<int>(GetPath(LIKES_NUM_KEY), 0);
                         
+                        //Retrieve max comment id
+                        auto max_cid_path = utils::JoinPath({COMMENT_TREE_KEY, COMMENT_MAX_COMMENT_ID});
+                        int max_cid = post_tree.get<int>(GetPath(max_cid_path), 0);
+                        
                         flatbuffers::FlatBufferBuilder builder;
                         auto view_resp = fbs::post::CreateGetPostResponse(builder,
                                                                           fbs::Status_OK, 0,
@@ -232,7 +238,8 @@ namespace handlers {
                                                                           builder.CreateString(addr_str),
                                                                           builder.CreateString(content),
                                                                           builder.CreateString(post_time_str),
-                                                                          like_num);
+                                                                          like_num,
+                                                                          (uint64_t)max_cid);
                         fbs::post::FinishGetPostResponseBuffer(builder, view_resp);
                         response_writer(builder.GetBufferPointer(), builder.GetSize());
                     }catch(const session::BadTransformException&){
@@ -381,6 +388,123 @@ namespace handlers {
             }
         };
         
+        const HandleFunc handleAddComment = HANDLE_FUNC(){
+            //Verify request
+            flatbuffers::Verifier verifier(request.payload()->Data(), request.payload()->size());
+            if(fbs::post::VerifyNewCommentRequestBuffer(verifier)){
+                
+                auto* new_comment_req = fbs::post::GetNewCommentRequest(request.payload()->Data());
+                const auto* session = new_comment_req->session();
+                
+                if(session::IsSessionExist(*session)){
+                    
+                    using namespace boost::property_tree;
+                    
+                    try{
+                        
+                        auto username = session::GetStringValue(*session, session::SESSION_KEY_USERNAME);
+                        auto post_id = new_comment_req->post_id();
+                        
+                        ptree& post_tree = Posts.get_child(GetPath(std::to_string(post_id)));
+                        if(!canViewPost(post_tree, username)){
+                            SendStatusResponse(fbs::Status_PERMISSION_DENIED, response_writer);
+                            return;
+                        }
+                        
+                        auto max_cid_path = utils::JoinPath({COMMENT_TREE_KEY, COMMENT_MAX_COMMENT_ID});
+                        int cid = post_tree.get<int>(GetPath(max_cid_path), 0) + 1;
+                        auto content = new_comment_req->content()->str();
+                        
+                        ptree comment_tree;
+                        comment_tree.put(GetPath(COMMENT_USER_KEY), username);
+                        comment_tree.put(GetPath(COMMENT_CONTENT_KEY), content);
+                        
+                        post_tree.put(GetPath(max_cid_path), cid);
+                        auto new_comment_path = utils::JoinPath({COMMENT_TREE_KEY, std::to_string(cid)});
+                        post_tree.put_child(GetPath(new_comment_path), comment_tree);
+                        
+                        SendStatusResponse(fbs::Status_OK, response_writer);
+                    }catch(const ptree_bad_path&){
+                        SendStatusResponse(fbs::Status_INVALID_REQUEST_ARGUMENT, response_writer);
+                    }catch(const session::BadTransformException&){
+                        SendStatusResponse(fbs::Status_AUTH_ERROR, response_writer);
+                    }
+                    
+                }else{
+                    SendStatusResponse(fbs::Status_AUTH_ERROR, response_writer);
+                }
+                
+            }else{
+                Log::W("Add Comment Handler") << "Payload format invalid" << std::endl;
+                SendStatusResponse(fbs::Status_PAYLOAD_FORMAT_INVALID, response_writer);
+            }
+        };
+        
+        const HandleFunc handleViewComment = HANDLE_FUNC(){
+            
+            const auto send_status = [&response_writer](fbs::Status status)->void{
+                flatbuffers::FlatBufferBuilder builder;
+                auto resp = fbs::post::CreateGetCommentResponse(builder,
+                                                                status);
+                fbs::post::FinishGetCommentResponseBuffer(builder, resp);
+                response_writer(builder.GetBufferPointer(), builder.GetSize());
+            };
+            
+            //Verify request
+            flatbuffers::Verifier verifier(request.payload()->Data(), request.payload()->size());
+            if(fbs::post::VerifyGetCommentRequestBuffer(verifier)){
+                
+                auto* view_req = fbs::post::GetGetCommentRequest(request.payload()->Data());
+                const auto* session = view_req->session();
+                
+                if(session::IsSessionExist(*session)){
+                    
+                    using namespace boost::property_tree;
+                    try{
+                        
+                        auto username = session::GetStringValue(*session, session::SESSION_KEY_USERNAME);
+                        auto post_id = view_req->post_id();
+                        
+                        ptree& post_tree = Posts.get_child(GetPath(std::to_string(post_id)));
+                        if(!canViewPost(post_tree, username)){
+                            send_status(fbs::Status_PERMISSION_DENIED);
+                            return;
+                        }
+                        
+                        auto comment_id = view_req->comment_id();
+                        
+                        auto comment_tree_path = utils::JoinPath({COMMENT_TREE_KEY, std::to_string(comment_id)});
+                        ptree& comment_tree = post_tree.get_child(GetPath(comment_tree_path));
+                        
+                        auto comment_user = comment_tree.get(GetPath(COMMENT_USER_KEY), "");
+                        auto comment_content = comment_tree.get(GetPath(COMMENT_CONTENT_KEY), "");
+                        
+                        //Build response
+                        flatbuffers::FlatBufferBuilder builder;
+                        auto resp = fbs::post::CreateGetCommentResponse(builder,
+                                                                        fbs::Status_OK, 0,
+                                                                        builder.CreateString(comment_user),
+                                                                        builder.CreateString(comment_content));
+                        fbs::post::FinishGetCommentResponseBuffer(builder, resp);
+                        
+                        response_writer(builder.GetBufferPointer(), builder.GetSize());
+                        
+                    }catch(const ptree_bad_path&){
+                        send_status(fbs::Status_INVALID_REQUEST_ARGUMENT);
+                    }catch(const session::BadTransformException&){
+                        send_status(fbs::Status_AUTH_ERROR);
+                    }
+                    
+                }else{
+                    send_status(fbs::Status_AUTH_ERROR);
+                }
+                
+            }else{
+                Log::W("View Comment Handler") << "Payload format invalid" << std::endl;
+                send_status(fbs::Status_PAYLOAD_FORMAT_INVALID);
+            }
+        };
+        
     } //namespace post
     
     void InitPostHandlers(Router& router){
@@ -402,7 +526,9 @@ namespace handlers {
         .Path("/edit/perm", post::handleEditPostPerm)
         .Path("/view", post::handleViewPost)
         .Path("/view/maxPid", post::handleGetMaxPid)
-        .Path("/like", post::handleLike);
+        .Path("/like", post::handleLike)
+        .Path("/comment/add", post::handleAddComment)
+        .Path("/comment/view", post::handleViewComment);
     }
     
 } //namespace handlers

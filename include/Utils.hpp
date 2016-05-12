@@ -4,6 +4,7 @@
 #include <string>
 #include <vector>
 #include <functional>
+#include <initializer_list>
 
 #include <schemas/core.h>
 
@@ -26,6 +27,21 @@ namespace utils{
             if(str[i] != ch) break;
         }
         if(i + 1 < str.length()) str.erase(i+1);
+    }
+    
+    template <char sep = '/'>
+    inline std::string JoinPath(std::initializer_list<std::string> segs){
+        if(segs.size() <= 0) return std::string("");
+        
+        auto it_segs = segs.begin();
+        std::string result(*it_segs);
+        
+        for(++it_segs; it_segs != segs.end(); ++it_segs){
+            result.push_back(sep);
+            result += *it_segs;
+        }
+        
+        return result;
     }
     
     typedef std::function<void(void)> FinalizeCallback;
@@ -57,6 +73,9 @@ namespace utils{
                 
             case fbs::Status_PERMISSION_DENIED:
                 return "Permission Denied";
+                
+            case fbs::Status_INVALID_REQUEST_ARGUMENT:
+                return "Invalid Request Argument";
                 
             default:
                 return "Unknown Error";

@@ -18,13 +18,16 @@ struct GetCommentResponse;
 struct GetCommentResponse FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   fbs::Status status_code() const { return static_cast<fbs::Status>(GetField<int8_t>(4, 0)); }
   const fbs::Session *session() const { return GetPointer<const fbs::Session *>(6); }
-  const flatbuffers::String *content() const { return GetPointer<const flatbuffers::String *>(8); }
+  const flatbuffers::String *commenter() const { return GetPointer<const flatbuffers::String *>(8); }
+  const flatbuffers::String *content() const { return GetPointer<const flatbuffers::String *>(10); }
   bool Verify(flatbuffers::Verifier &verifier) const {
     return VerifyTableStart(verifier) &&
            VerifyField<int8_t>(verifier, 4 /* status_code */) &&
            VerifyField<flatbuffers::uoffset_t>(verifier, 6 /* session */) &&
            verifier.VerifyTable(session()) &&
-           VerifyField<flatbuffers::uoffset_t>(verifier, 8 /* content */) &&
+           VerifyField<flatbuffers::uoffset_t>(verifier, 8 /* commenter */) &&
+           verifier.Verify(commenter()) &&
+           VerifyField<flatbuffers::uoffset_t>(verifier, 10 /* content */) &&
            verifier.Verify(content()) &&
            verifier.EndTable();
   }
@@ -35,11 +38,12 @@ struct GetCommentResponseBuilder {
   flatbuffers::uoffset_t start_;
   void add_status_code(fbs::Status status_code) { fbb_.AddElement<int8_t>(4, static_cast<int8_t>(status_code), 0); }
   void add_session(flatbuffers::Offset<fbs::Session> session) { fbb_.AddOffset(6, session); }
-  void add_content(flatbuffers::Offset<flatbuffers::String> content) { fbb_.AddOffset(8, content); }
+  void add_commenter(flatbuffers::Offset<flatbuffers::String> commenter) { fbb_.AddOffset(8, commenter); }
+  void add_content(flatbuffers::Offset<flatbuffers::String> content) { fbb_.AddOffset(10, content); }
   GetCommentResponseBuilder(flatbuffers::FlatBufferBuilder &_fbb) : fbb_(_fbb) { start_ = fbb_.StartTable(); }
   GetCommentResponseBuilder &operator=(const GetCommentResponseBuilder &);
   flatbuffers::Offset<GetCommentResponse> Finish() {
-    auto o = flatbuffers::Offset<GetCommentResponse>(fbb_.EndTable(start_, 3));
+    auto o = flatbuffers::Offset<GetCommentResponse>(fbb_.EndTable(start_, 4));
     return o;
   }
 };
@@ -47,9 +51,11 @@ struct GetCommentResponseBuilder {
 inline flatbuffers::Offset<GetCommentResponse> CreateGetCommentResponse(flatbuffers::FlatBufferBuilder &_fbb,
    fbs::Status status_code = fbs::Status_OK,
    flatbuffers::Offset<fbs::Session> session = 0,
+   flatbuffers::Offset<flatbuffers::String> commenter = 0,
    flatbuffers::Offset<flatbuffers::String> content = 0) {
   GetCommentResponseBuilder builder_(_fbb);
   builder_.add_content(content);
+  builder_.add_commenter(commenter);
   builder_.add_session(session);
   builder_.add_status_code(status_code);
   return builder_.Finish();

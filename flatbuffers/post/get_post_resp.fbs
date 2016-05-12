@@ -12,5 +12,6 @@ table GetPostResponse {
   content:string;
   timestamp:string;
   like_num:int;
+  max_comment_id:ulong;
 }
 root_type GetPostResponse;

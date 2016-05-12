@@ -6,6 +6,7 @@ table GetCommentResponse {
   status_code:Status;
   session:Session; //Reserve
 
+  commenter:string;
   content:string;
 }
 root_type GetCommentResponse;

@@ -143,6 +143,10 @@ namespace post {
                 std::cout << "Post Time: " << resp->timestamp()->str() << std::endl;
                 
                 std::cout << "Like number: " << (int)resp->like_num() << std::endl;
+                
+                //Comment info
+                context::post::MaxCid = resp->max_comment_id();
+                context::post::CurrentCid = context::post::MaxCid;
             }
         });
         
@@ -176,10 +180,15 @@ namespace post {
             std::cout << "[P]revious Post\t";
         }
         if(context::post::CurrentPid < context::post::MaxPid){
-            std::cout << "[N]ext Post" << std::endl;
+            std::cout << "[N]ext Post";
         }
-        std::cout << "[L]ike This post" << std::endl;
-        std::cout << "[U]nlike This post" << std::endl;
+        std::cout <<std::endl;
+        std::cout << "[L]ike / [U]nlike This post" << std::endl;
+        std::cout << "[A]dd Comment";
+        if(context::post::MaxCid > 0){
+            std::cout << "\t[V]iew Comments";
+        }
+        std::cout << std::endl;
         std::cout << "[B]ack" << std::endl;
         
         std::cout << context::PROMPT_CHAR;
@@ -216,9 +225,179 @@ namespace post {
                 break;
             }
                 
+            case 'a':{
+                next_screen = context::Screen::ADD_COMMENT;
+                break;
+            }
+            case 'v':{
+                next_screen = context::Screen::VIEW_NEXT_COMMENTS;
+                break;
+            }
+                
             case 'b':{
                 context::post::CurrentPid = -1;
                 next_screen = context::Screen::MAIN;
+                break;
+            }
+        }
+        
+        return next_screen;
+    };
+    
+    const context::ScreenHandler handleAddComment = SCREEN_HANDLER(){
+        
+        context::PrintDivideLine();
+        
+        auto next_screen = context::Screen::VIEW_NEXT_POST;
+        
+        std::string comment_str("");
+        std::cout << "Enter Comment: ";
+        std::cin.ignore();
+        std::getline(std::cin, comment_str);
+        
+        flatbuffers::FlatBufferBuilder builder_comment, builder_req;
+        
+        auto session = fbs::CreateSession(builder_comment,
+                                          builder_comment.CreateString(context::CurrentTokenStr));
+        auto comment_req=  fbs::post::CreateNewCommentRequest(builder_comment,
+                                                              session,
+                                                              context::post::CurrentPid,
+                                                              builder_comment.CreateString(comment_str));
+        fbs::post::FinishNewCommentRequestBuffer(builder_comment, comment_req);
+        
+        utils::BuildRequest("/post/comment/add", builder_req, builder_comment);
+        
+        utils::ClientSendAndRead(context::SocketFd, builder_req,
+                                 [&next_screen](char* buffer, ssize_t n_bytes)->void{
+                                     //Parsing response
+                                     if(n_bytes < 0){
+                                         std::cout << "Communication Error" << std::endl;
+                                         return;
+                                     }
+                                     
+                                     auto* resp = fbs::GetGeneralResponse(buffer);
+                                     if(resp->status_code() != fbs::Status_OK){
+                                         std::cout << "Error: ";
+                                     }
+                                     
+                                     std::cout << utils::GetErrorVerbose(resp->status_code()) << std::endl;
+                                 });
+        
+        return next_screen;
+    };
+    
+    const context::ScreenHandler handleViewComment = SCREEN_HANDLER(){
+        
+        context::PrintDivideLine();
+        
+        auto next_screen = context::Screen::VIEW_NEXT_POST;
+        
+        //Get Post
+        flatbuffers::FlatBufferBuilder builder_comment, builder_req;
+        
+        auto session_fbs = fbs::CreateSession(builder_comment,
+                                              builder_comment.CreateString(context::CurrentTokenStr));
+        
+        auto view_comment_req = fbs::post::CreateGetCommentRequest(builder_comment,
+                                                                   session_fbs,
+                                                                   (uint64_t)context::post::CurrentPid,
+                                                                   (uint64_t)context::post::CurrentCid);
+        fbs::post::FinishGetCommentRequestBuffer(builder_comment, view_comment_req);
+        
+        utils::BuildRequest("/post/comment/view", builder_req, builder_comment);
+        
+        bool skip = false;
+        utils::ClientSendAndRead(context::SocketFd, builder_req, [&](char* buffer, ssize_t n_bytes)->void{
+            //Parsing response
+            if(n_bytes < 0){
+                std::cout << "Communication Error" << std::endl;
+                next_screen = context::Screen::MAIN;
+                return;
+            }
+            
+            auto* resp = fbs::post::GetGetCommentResponse(buffer);
+            auto status_code = resp->status_code();
+            if(status_code != fbs::Status_OK){
+                if(status_code == fbs::Status_PERMISSION_DENIED){
+                    skip = true;
+                }else{
+                    std::cout << "Error: " << utils::GetErrorVerbose(status_code) << std::endl;
+                    next_screen = context::Screen::MAIN;
+                }
+            }else{
+                std::cout << resp->commenter()->str() << ": " << resp->content()->str() << std::endl;
+            }
+        });
+        
+        if(skip){
+            switch(current_screen){
+                case context::Screen::VIEW_NEXT_POST:{
+                    if(context::post::CurrentPid < context::post::MaxPid){
+                        context::post::CurrentPid++;
+                        return context::Screen::STAY;
+                    }else{
+                        return context::Screen::MAIN;
+                    }
+                }
+                    
+                case context::Screen::VIEW_PREV_POST:{
+                    if(context::post::CurrentPid > 1){
+                        context::post::CurrentPid--;
+                        return context::Screen::STAY;
+                    }else{
+                        return context::Screen::MAIN;
+                    }
+                }
+                    
+                default:
+                    break;
+            }
+        }
+        
+        std::cout << std::endl;
+        if(context::post::CurrentCid > 1){
+            std::cout << "[P]revious Comment\t";
+        }
+        if(context::post::CurrentCid < context::post::MaxCid){
+            std::cout << "[N]ext Comment";
+        }
+        
+        std::cout <<std::endl;
+        std::cout << "[B]ack" << std::endl;
+        
+        std::cout << context::PROMPT_CHAR;
+        char input_char;
+        std::cin >> input_char;
+        
+        switch(std::tolower(input_char)){
+            case 'n':{
+                if(context::post::CurrentCid < context::post::MaxCid){
+                    context::post::CurrentCid++;
+                    next_screen = context::Screen::VIEW_NEXT_COMMENTS;
+                }else{
+                    std::cout << "Unrecognized command: " << input_char << std::endl;
+                }
+                break;
+            }
+                
+            case 'p':{
+                if(context::post::CurrentCid > 1){
+                    context::post::CurrentCid--;
+                    next_screen = context::Screen::VIEW_PREV_COMMENTS;
+                }else{
+                    std::cout << "Unrecognized command: " << input_char << std::endl;
+                }
+                break;
+            }
+                
+            case 'b':{
+                next_screen = context::Screen::VIEW_NEXT_POST;
+                break;
+            }
+                
+            default:{
+                std::cout << "Unrecognized command: " << input_char << std::endl;
+                next_screen = context::Screen::STAY;
                 break;
             }
         }
@@ -276,6 +455,9 @@ namespace post {
         context::AddScreen(context::Screen::ADD_POST, handleAddPost);
         context::AddScreen(context::Screen::VIEW_NEXT_POST, handleViewPost);
         context::AddScreen(context::Screen::VIEW_PREV_POST, handleViewPost);
+        context::AddScreen(context::Screen::ADD_COMMENT, handleAddComment);
+        context::AddScreen(context::Screen::VIEW_PREV_COMMENTS, handleViewComment);
+        context::AddScreen(context::Screen::VIEW_NEXT_COMMENTS, handleViewComment);
         context::AddScreen(context::Screen::LIKE_POST, handleLike);
         context::AddScreen(context::Screen::UNLIKE_POST, handleLike);
     }

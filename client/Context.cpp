@@ -12,9 +12,14 @@ namespace context {
     
     const char PROMPT_CHAR = '>';
     
+    std::string Username("");
+    
     namespace post{
         long MaxPid = -1;
         long CurrentPid = -1;
+        
+        long MaxCid = -1;
+        long CurrentCid = -1;
     } //namespace post
     
     ScreenHandler& GetScreen(Screen scr){

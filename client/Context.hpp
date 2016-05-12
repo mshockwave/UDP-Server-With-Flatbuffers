@@ -13,8 +13,11 @@ namespace context {
     
     extern const char PROMPT_CHAR;
     
+    extern std::string Username;
+    
     namespace post{
         extern long CurrentPid, MaxPid;
+        extern long CurrentCid, MaxCid;
     } //namespace post
     
     inline void PrintDivideLine(){
@@ -38,7 +41,10 @@ namespace context {
         VIEW_NEXT_POST = 9,
         VIEW_PREV_POST = 10,
         LIKE_POST = 11,
-        UNLIKE_POST = 12
+        UNLIKE_POST = 12,
+        ADD_COMMENT = 13,
+        VIEW_NEXT_COMMENTS = 14,
+        VIEW_PREV_COMMENTS = 15
     };
     
     typedef std::function<Screen(Screen)> ScreenHandler;

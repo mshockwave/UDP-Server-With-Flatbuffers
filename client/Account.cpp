@@ -20,7 +20,7 @@ namespace account {
         utils::BuildRequest("/account/register", builder_raw, builder_reg);
         
         auto next_screen = context::Screen::MAIN;
-        const auto response_callback = [&next_screen](char *response, ssize_t n_bytes)->void{
+        const auto response_callback = [&next_screen, account](char *response, ssize_t n_bytes)->void{
             
             if(n_bytes < 0){
                 std::cout << "Communication Error" << std::endl;
@@ -37,6 +37,7 @@ namespace account {
                 }else{
                     const auto& token_str = resp->session()->token()->str();
                     context::CurrentTokenStr = token_str;
+                    context::Username = account;
                 }
                 std::cout << utils::GetErrorVerbose(resp->status_code()) << std::endl;
             }else{
@@ -70,7 +71,7 @@ namespace account {
         utils::BuildRequest("/account/login", builder_raw, builder_login);
         
         auto next_screen = context::Screen::MAIN;
-        const auto response_callback = [&next_screen](char *response, ssize_t n_bytes)->void{
+        const auto response_callback = [&next_screen, account](char *response, ssize_t n_bytes)->void{
             
             if(n_bytes < 0){
                 std::cout << "Communication Error" << std::endl;
@@ -87,6 +88,7 @@ namespace account {
                 }else{
                     const auto& token_str = resp->session()->token()->str();
                     context::CurrentTokenStr = token_str;
+                    context::Username = account;
                 }
                 std::cout << utils::GetErrorVerbose(resp->status_code()) << std::endl;
             }else{
