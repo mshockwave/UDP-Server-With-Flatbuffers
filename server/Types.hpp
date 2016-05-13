@@ -5,10 +5,15 @@
 #include <functional>
 #include <cstdint>
 
+extern "C"{
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
+}
+
 #include <boost/property_tree/ptree.hpp>
 
 #include <schemas/core.h>
-#include "Session.hpp"
 
 typedef uint8_t byte_t;
 typedef int8_t sbyte_t;
@@ -38,5 +43,37 @@ inline boost::property_tree::path GetPath(const std::string &path){
 
 #define PROFILE_PASSWORD_KEY    "password"
 #define PROFILE_NIKNAME_KEY     "nickname"
+
+class RequestWrapper {
+    
+public:
+    
+    typedef struct sockaddr_in SocketAddrIn;
+    
+    RequestWrapper(const fbs::RequestPacket& packet_,
+                   const SocketAddrIn& client_addr_ = SocketAddrIn()) :
+    client_addr(client_addr_),
+    raw_packet(packet_){}
+    
+    const flatbuffers::String* path()const{ return raw_packet.path(); }
+    const flatbuffers::Vector<int8_t>* payload()const{ return raw_packet.payload(); }
+    
+    const char* GetClientAddrStr() const {
+        return const_cast<const char*>(inet_ntoa(client_addr.sin_addr));
+    }
+    int GetClientPort() const {
+        return ntohs(client_addr.sin_port);
+    }
+    
+    const SocketAddrIn& GetRawSockAddr() const { return client_addr; }
+    
+private:
+    
+    const fbs::RequestPacket& raw_packet;
+    
+    const SocketAddrIn& client_addr;
+};
+
+typedef RequestWrapper Request;
 
 #endif

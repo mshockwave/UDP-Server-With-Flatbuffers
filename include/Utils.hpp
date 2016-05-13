@@ -1,10 +1,15 @@
 #ifndef _UTILS_HPP_
 #define _UTILS_HPP_
 
+#include <ctime>
 #include <string>
 #include <vector>
 #include <functional>
 #include <initializer_list>
+extern "C"{
+#include <netinet/in.h>
+#include <arpa/inet.h>
+}
 
 #include <schemas/core.h>
 
@@ -42,6 +47,22 @@ namespace utils{
         }
         
         return result;
+    }
+    
+    inline std::string GetCurrentTime(){
+        time_t raw_time;
+        time(&raw_time);
+        auto* time_info = localtime(&raw_time);
+        std::string time_str(asctime(time_info));
+        TrimString(time_str);
+        return time_str;
+    }
+    
+    inline void ToSockAddrInet(struct sockaddr_in& addr, const char* addr_str, int port){
+        bzero(&addr, sizeof(addr));
+        addr.sin_family = AF_INET;
+        addr.sin_port = htons(port);
+        inet_pton(AF_INET, addr_str, &addr.sin_addr);
     }
     
     typedef std::function<void(void)> FinalizeCallback;

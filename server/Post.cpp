@@ -124,10 +124,7 @@ namespace handlers {
                         
                         post_tree.put(GetPath(CONTENT_KEY), content_str);
                         post_tree.put(GetPath(POSTER_ADDR_KEY), client_addr);
-                        time_t raw_time;
-                        time(&raw_time);
-                        auto* time_info = localtime(&raw_time);
-                        std::string time_str(asctime(time_info));
+                        auto time_str = utils::GetCurrentTime();
                         post_tree.put(GetPath(TIMESTAMP_KEY), time_str);
                         
                         Posts.put_child(GetPath(std::to_string(post_id)), post_tree);

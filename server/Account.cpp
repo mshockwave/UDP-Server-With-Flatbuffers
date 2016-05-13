@@ -71,7 +71,8 @@ namespace handlers{
                     //Send response
                     flatbuffers::FlatBufferBuilder builder;
                     auto resp = fbs::CreateGeneralResponse(builder,
-                                                           session::NewSession(builder, username),
+                                                           session::NewSession(builder, username,
+                                                                               request.GetRawSockAddr()),
                                                            fbs::Status_OK);
                     fbs::FinishGeneralResponseBuffer(builder, resp);
                     
@@ -108,7 +109,8 @@ namespace handlers{
                     {
                         flatbuffers::FlatBufferBuilder builder;
                         auto resp = fbs::CreateGeneralResponse(builder,
-                                                               session::NewSession(builder, username),
+                                                               session::NewSession(builder, username,
+                                                                                   request.GetRawSockAddr()),
                                                                fbs::Status_OK);
                         fbs::FinishGeneralResponseBuffer(builder, resp);
                         
