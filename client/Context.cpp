@@ -22,6 +22,10 @@ namespace context {
         long CurrentCid = -1;
     } //namespace post
     
+    namespace account{
+        std::vector<std::string> PendingFriends;
+    } //namespace account
+    
     ScreenHandler& GetScreen(Screen scr){
         auto it_screen = ScreenMap.find(scr);
         return (it_screen == ScreenMap.end())? ScreenMap[Screen::ENTRY] : (it_screen->second);
@@ -66,6 +70,8 @@ namespace context {
             PrintDivideLine();
             
             std::cout << "[A]dd Post\t" << "[V]iew Posts" << std::endl;
+            std::cout << "[S]earch Accounts" << std::endl;
+            std::cout << "[F]riend" << std::endl;
             std::cout << "[L]ogout" << std::endl;
             std::cout << PROMPT_CHAR;
             
@@ -83,6 +89,14 @@ namespace context {
                 
                 case 'l':{
                     return Screen::LOGOUT;
+                }
+                    
+                case 's':{
+                    return Screen::SEARCH_ACCOUNT;
+                }
+                    
+                case 'f':{
+                    return Screen::FRIEND_ENTRY;
                 }
                     
                 default:{

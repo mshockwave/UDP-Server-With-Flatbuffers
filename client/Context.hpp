@@ -4,6 +4,7 @@
 #include <string>
 #include <functional>
 #include <iostream>
+#include <vector>
 
 namespace context {
     
@@ -19,6 +20,12 @@ namespace context {
         extern long CurrentPid, MaxPid;
         extern long CurrentCid, MaxCid;
     } //namespace post
+    
+    namespace account {
+        
+        extern std::vector<std::string> PendingFriends;
+        
+    } //namespace account
     
     inline void PrintDivideLine(){
         int i;
@@ -46,7 +53,15 @@ namespace context {
         VIEW_NEXT_COMMENTS = 14,
         VIEW_PREV_COMMENTS = 15,
         REMOVE_POST = 16,
-        REMOVE_COMMENT = 17
+        REMOVE_COMMENT = 17,
+        
+        //Account
+        FRIEND_ENTRY = 18,
+        SEARCH_ACCOUNT = 19,
+        VIEW_FRIENDS = 20,
+        VIEW_PENDING_FRIENDS = 21,
+        ADD_FRIEND = 22,
+        CONFIRM_PENDING_FRIEND = 23
     };
     
     typedef std::function<Screen(Screen)> ScreenHandler;

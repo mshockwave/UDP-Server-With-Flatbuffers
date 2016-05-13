@@ -41,9 +41,6 @@ inline boost::property_tree::path GetPath(const std::string &path){
     return boost::property_tree::path(path, PATH_SEPARATOR);
 }
 
-#define PROFILE_PASSWORD_KEY    "password"
-#define PROFILE_NIKNAME_KEY     "nickname"
-
 class RequestWrapper {
     
 public:
