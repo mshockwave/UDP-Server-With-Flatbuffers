@@ -404,6 +404,71 @@ namespace account {
         return next_screen;
     };
     
+    const context::ScreenHandler handleViewFriends = SCREEN_HANDLER(){
+        
+        context::PrintDivideLine();
+        
+        auto next_screen = context::Screen::FRIEND_ENTRY;
+        
+        flatbuffers::FlatBufferBuilder builder_friend, builder_req;
+        auto session = fbs::CreateSession(builder_friend,
+                                          builder_friend.CreateString(context::CurrentTokenStr));
+        auto req = fbs::account::CreateViewFriendRequest(builder_friend, session);
+        fbs::account::FinishViewFriendRequestBuffer(builder_friend, req);
+        
+        utils::BuildRequest("/account/friend", builder_req, builder_friend);
+        
+        utils::ClientSendAndRead(context::SocketFd,
+                                 builder_req,
+                                 [&next_screen](char* buffer, ssize_t n_bytes)->void{
+                                     //Parsing response
+                                     if(n_bytes < 0){
+                                         std::cout << "Communication Error" << std::endl;
+                                         return;
+                                     }
+                                     
+                                     auto* resp = fbs::account::GetViewFriendResponse(buffer);
+                                     if(resp->status_code() != fbs::Status_OK){
+                                         std::cout << "Error: ";
+                                         std::cout << utils::GetErrorVerbose(resp->status_code()) << std::endl;
+                                         return;
+                                     }
+                                     
+                                     const auto& results = *(resp->results());
+                                     std::cout << "Result count: " << (int)results.Length() << std::endl;
+                                     context::account::PendingFriends.clear();
+                                     int index = 1;
+                                     for(auto it_result : results){
+                                         auto name = it_result->str();
+                                         context::account::PendingFriends.push_back(name);
+                                         std::cout << "\t[" << index++ << "] " << name << std::endl;
+                                     }
+                                     
+                                     if(index == 1){
+                                         //No friend requests QQ
+                                     }else{
+                                         std::cout << "Send [M]essage" << std::endl;
+                                     }
+                                     std::cout << "[B]ack" << std::endl;
+                                     
+                                     std::cout << context::PROMPT_CHAR;
+                                     char input_char;
+                                     std::cin >> input_char;
+                                     
+                                     switch(std::tolower(input_char)){
+                                         case 'b':{
+                                             next_screen = context::Screen::FRIEND_ENTRY;
+                                             break;
+                                         }
+                                             
+                                         default:
+                                             std::cout << "Unrecognized command: " << input_char << std::endl;
+                                     }
+                                 });
+        
+        return next_screen;
+    };
+    
     void InitScreens(){
         context::AddScreen(context::Screen::REGISTER, handleRegister);
         context::AddScreen(context::Screen::LOGIN, handleLogin);
@@ -413,6 +478,7 @@ namespace account {
         context::AddScreen(context::Screen::ADD_FRIEND, handleAddFriend);
         context::AddScreen(context::Screen::VIEW_PENDING_FRIENDS, handleViewPendingFriendReq);
         context::AddScreen(context::Screen::CONFIRM_PENDING_FRIEND, handleConfirmFriendRequets);
+        context::AddScreen(context::Screen::VIEW_FRIENDS, handleViewFriends);
     }
     
 } //namespace account
