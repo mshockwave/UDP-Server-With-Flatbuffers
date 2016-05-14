@@ -1,7 +1,15 @@
 #include "Message.hpp"
+#include <Log.hpp>
+#include <Utils.hpp>
 
 #include <string>
 #include <vector>
+
+extern "C"{
+#include <stdio.h>
+#include <sys/select.h>
+#include <errno.h>
+}
 
 #include <boost/tokenizer.hpp>
 
@@ -83,7 +91,7 @@ namespace msg {
                 return context::Screen::STAY;
             }
             
-            std::cout << "Enter members(separated by comma):" << std::endl;
+            std::cout << "Enter members(separated by comma): " << std::endl;
             std::cin.ignore();
             std::string member_str("");
             std::getline(std::cin, member_str);
@@ -191,6 +199,13 @@ namespace msg {
                                              break;
                                          }
                                              
+                                         case 'j':{
+                                             next_screen = context::Screen::MSG_JOIN_CHANNEL;
+                                             break;
+                                         }
+                                             
+                                        //TODO
+                                             
                                          default:
                                              std::cout << "Unrecognized command: " << input_char << std::endl;
                                      }
@@ -199,13 +214,185 @@ namespace msg {
         return next_screen;
     };
     
+    const context::ScreenHandler handleJoinChannel = SCREEN_HANDLER(){
+        
+        auto next_screen = context::Screen::STAY;
+        
+        using namespace context::msg;
+        auto length = Channels.size();
+        std::cout << "[1-" << (int)length << "]: ";
+        int index;
+        std::cin >> index;
+        
+        if(index < 1 || index > length){
+            std::cout << "Error: Index Out Of Range" << std::endl;
+        }else{
+            CurrentChannelId = Channels[index-1];
+            next_screen = context::Screen::MSG_MAIN_WINDOW;
+        }
+        
+        return next_screen;
+    };
+    
     const context::ScreenHandler handleMsgMainWindow = SCREEN_HANDLER(){
         
         context::PrintDivideLine();
         
-        //TODO
         auto next_screen = context::Screen::MSG_ENTRY;
-        std::cout << "This is message main window" << std::endl;
+        
+        std::cin.sync_with_stdio();
+        typedef struct timeval TimeVal;
+        
+        fd_set fds;
+        int stdin_fd = fileno(stdin);
+        FD_ZERO(&fds);
+        
+        const int LONG_POLL_CYCLE = 10000; // 10ms
+        const int SHORT_POLL_CYCLE = 100; // 0.1ms
+        const int REALLY_SHORT_POLL_CYCLE = 10; // 10us
+        int current_timeout_us = SHORT_POLL_CYCLE;
+        
+        bool terminate = false;
+        
+        /*Message response handler*/
+        const auto msg_resp_callback = [&](char *buffer, ssize_t n_bytes)->void{
+            /*Buffer had verified*/
+            auto* resp = fbs::msg::GetGetMsgResponse(buffer);
+            
+            if(resp->status_code() != fbs::Status_OK) return;
+            
+            current_timeout_us = LONG_POLL_CYCLE;
+            for(const auto* msg : *(resp->msg_list())){
+                const auto* content_ptr = msg->content();
+                switch(msg->content_type()){
+                    case fbs::msg::MsgContent_StringContent:{
+                        const auto* str_content = reinterpret_cast<const fbs::msg::StringContent*>(content_ptr);
+                        std::cout << std::endl << msg->sender()->str() << " -> " ;
+                        std::cout << str_content->data()->str() << std::endl;
+                        current_timeout_us = SHORT_POLL_CYCLE;
+                        break;
+                    }
+                        
+                    case fbs::msg::MsgContent_FileChunk:{
+                        //TODO
+                        current_timeout_us = REALLY_SHORT_POLL_CYCLE;
+                        break;
+                    }
+                        
+                    case fbs::msg::MsgContent_NONE: {
+                        break;
+                    }
+                }
+            }
+        };
+        
+        while(!terminate){
+            int nready;
+            FD_SET(context::SocketFd, &fds);
+            FD_SET(stdin_fd, &fds);
+            
+            TimeVal timeout{0};
+            timeout.tv_usec = current_timeout_us; //100ms
+            
+            int maxfd = context::SocketFd + 1;
+            if((nready = ::select(maxfd, &fds, nullptr, nullptr, &timeout)) < 0){
+                if(errno == EINTR) continue;
+                else Log::W("Main Message Window") << "Select error" << std::endl;
+            }else if(nready == 0){
+                //Timeout
+                //Poll
+                
+                flatbuffers::FlatBufferBuilder builder_msg, builder_req;
+                auto session = fbs::CreateSession(builder_msg,
+                                                  builder_msg.CreateString(context::CurrentTokenStr));
+                auto current_channel = context::msg::CurrentChannelId;
+                auto req = fbs::msg::CreateGetMsgRequest(builder_msg,
+                                                         session,
+                                                         builder_msg.CreateString(current_channel));
+                fbs::msg::FinishGetMsgRequestBuffer(builder_msg, req);
+                utils::BuildRequest("/message/get", builder_req, builder_msg);
+                
+                write(context::SocketFd, builder_req.GetBufferPointer(), builder_req.GetSize());
+                
+            }else{
+                if(FD_ISSET(stdin_fd, &fds)){
+                    //Keyboard Input
+                    
+                    std::string input_line("");
+                    std::getline(std::cin, input_line);
+                    utils::TrimString(input_line, '\n');
+                    utils::TrimString(input_line, '\r');
+                    if(input_line.length() <= 0){
+                        //Previous new line left
+                        //Read Again
+                        std::getline(std::cin, input_line);
+                        utils::TrimString(input_line, '\n');
+                        utils::TrimString(input_line, '\r');
+                    }
+                    
+                    /*
+                     TODO: Special control
+                     */
+                    if(input_line == "@quit"){
+                        //Cleanup
+                        FD_CLR(context::SocketFd, &fds);
+                        FD_CLR(stdin_fd, &fds);
+                        terminate = true;
+                        continue;
+                    }
+                    
+                    flatbuffers::FlatBufferBuilder builder_msg, builder_req;
+                    auto session = fbs::CreateSession(builder_msg,
+                                                      builder_msg.CreateString(context::CurrentTokenStr));
+                    
+                    auto str_content = fbs::msg::CreateStringContent(builder_msg,
+                                                                     builder_msg.CreateString(input_line));
+                    auto msg_content = fbs::msg::CreateMsgEntity(builder_msg,
+                                                                 builder_msg.CreateString(context::Username),
+                                                                 fbs::msg::MsgContent_StringContent,
+                                                                 str_content.Union());
+                    
+                    auto current_channel = context::msg::CurrentChannelId;
+                    auto req = fbs::msg::CreatePutMsgRequest(builder_msg,
+                                                             session,
+                                                             builder_msg.CreateString(current_channel),
+                                                             msg_content);
+                    fbs::msg::FinishPutMsgRequestBuffer(builder_msg, req);
+                    utils::BuildRequest("/message/put", builder_req, builder_msg);
+                    
+                    //write(context::SocketFd, builder_req.GetBufferPointer(), builder_req.GetSize());
+                    /*
+                     Use the re-send feature of the below routine
+                     Blocking
+                     */
+                    utils::ClientSendAndRead(context::SocketFd,
+                                             builder_req,
+                                             [](char*,ssize_t n_bytes)->void{
+                                                 if(n_bytes < 0){
+                                                     std::cout << "Error: Send Message Failed" << std::endl;
+                                                 }
+                                             });
+                }
+                
+                if(FD_ISSET(context::SocketFd, &fds)){
+                    //Socket input
+                    
+                    char recv_buffer[RECV_BUFFER_SIZE];
+                    ssize_t n_read = read(context::SocketFd, recv_buffer, RECV_BUFFER_SIZE);
+                    if(n_read < 0){
+                        Log::E("Main Message Window") << "Read socket error" << std::endl;
+                        continue;
+                    }
+                    
+                    flatbuffers::Verifier verifier((uint8_t*)recv_buffer, (size_t)n_read);
+                    if(fbs::msg::VerifyGetMsgResponseBuffer(verifier)){
+                        msg_resp_callback(recv_buffer, n_read);
+                    }else{
+                        /*Don't care*/
+                    }
+                }
+            }
+        }
         
         return next_screen;
     };
@@ -216,5 +403,6 @@ namespace msg {
         context::AddScreen(context::Screen::MSG_CREATE_PRIVATE_CHANNEL, handleCreateChannel);
         context::AddScreen(context::Screen::MSG_CREATE_GROUP_CHANNEL, handleCreateChannel);
         context::AddScreen(context::Screen::MSG_VIEW_CHANNELS, handleViewChannels);
+        context::AddScreen(context::Screen::MSG_JOIN_CHANNEL, handleJoinChannel);
     }
 }

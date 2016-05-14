@@ -4,9 +4,11 @@ include "_msg_types.fbs";
 namespace fbs.msg;
 
 table GetMsgResponse {
+  //Put status_code at the bottom
+  //To avoid getting confused with GeneralResponse
+  msg_list:[MsgEntity];
+
   status_code:Status;
   session:Session; //Reserve
-
-  msg_list:[MsgEntity];
 }
 root_type GetMsgResponse;

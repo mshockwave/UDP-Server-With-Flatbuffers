@@ -78,7 +78,8 @@ namespace context {
         MSG_CREATE_GROUP_CHANNEL = 26,
         MSG_VIEW_CHANNELS = 27,
         MSG_MAIN_WINDOW = 28,
-        MSG_JOIN_GROUP = 29
+        MSG_JOIN_GROUP = 29,
+        MSG_JOIN_CHANNEL = 30
     };
     
     typedef std::function<Screen(Screen)> ScreenHandler;

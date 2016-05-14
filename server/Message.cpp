@@ -5,6 +5,7 @@
 #include <utility>
 #include <unordered_set>
 #include <unordered_map>
+#include <memory>
 
 #include <boost/uuid/uuid.hpp>
 #include <boost/uuid/uuid_generators.hpp>
@@ -22,7 +23,29 @@ typedef std::string channel_id_t;
 /*Channel id -> Group member account names*/
 static std::unordered_map< channel_id_t, std::unordered_set<std::string> > ChannelMemberMap;
 /*Sender name -> message content*/
-typedef std::pair<std::string,fbs::msg::MsgContent> msg_entity_t;
+typedef struct MsgEntity{
+    std::string Sender;
+    
+    fbs::msg::MsgContent ContentType;
+    //String Content
+    std::string String;
+    
+    //File Chunk Content
+    long Sequence;
+    std::string FileName;
+    std::shared_ptr<sbyte_t> FileChunk;
+    size_t ChunkSize;
+    
+    MsgEntity() :
+    Sender(""),
+    ContentType(fbs::msg::MsgContent_NONE),
+    String(""),
+    Sequence(0),
+    FileName(""),
+    //FileChunk(nullptr),
+    ChunkSize(0){}
+    
+} msg_entity_t;
 /*Channel id -> message queue*/
 typedef std::unordered_map< channel_id_t, std::vector<msg_entity_t> > mailbox_t;
 static std::unordered_map<channel_id_t, fbs::msg::ChannelType> ChannelTypeMap;
@@ -178,16 +201,172 @@ namespace handlers{
                 }
                 
             }else{
+                Log::W("View Channel Handler") << "Payload Format Error" << std::endl;
                 send_status(fbs::Status_PAYLOAD_FORMAT_INVALID);
             }
         };
         
         const HandleFunc handleGetMessage = HANDLE_FUNC(){
+            const auto send_status = [&response_writer](fbs::Status status)->void{
+                flatbuffers::FlatBufferBuilder builder;
+                auto resp = fbs::msg::CreateGetMsgResponse(builder,
+                                                           0,
+                                                           status);
+                fbs::msg::FinishGetMsgResponseBuffer(builder, resp);
+                response_writer(builder.GetBufferPointer(), builder.GetSize());
+            };
             
+            //Verify request
+            flatbuffers::Verifier verifier(request.payload()->Data(), request.payload()->size());
+            if(fbs::msg::VerifyGetMsgRequestBuffer(verifier)){
+                
+                auto* req= fbs::msg::GetGetMsgRequest(request.payload()->Data());
+                const auto* session = req->session();
+                
+                if(session::IsSessionExist(*session)){
+                    try{
+                        
+                        auto username = session::GetStringValue(*session, session::SESSION_KEY_USERNAME);
+                        const auto& channel_id = req->channel()->str();
+                        
+                        auto& mailbox = UserMailBoxes[username];
+                        auto& msg_queue = mailbox[channel_id];
+                        
+                        flatbuffers::FlatBufferBuilder builder;
+                        std::vector<  flatbuffers::Offset<fbs::msg::MsgEntity> > ret_list;
+                        
+                        for(const auto& msg_item : msg_queue){
+                            const auto& sender = msg_item.Sender;
+                            auto msg_entity = fbs::msg::CreateMsgEntity(builder);
+                            switch(msg_item.ContentType){
+                                case fbs::msg::MsgContent_StringContent:{
+                                    auto str_offset = builder.CreateString(msg_item.String);
+                                    auto string_content = fbs::msg::CreateStringContent(builder,
+                                                                                        str_offset);
+                                    msg_entity = fbs::msg::CreateMsgEntity(builder,
+                                                                           builder.CreateString(sender),
+                                                                           msg_item.ContentType,
+                                                                           string_content.Union());
+                                    break;
+                                }
+                                
+                                case fbs::msg::MsgContent_FileChunk:{
+                                    auto file_name_offset = builder.CreateString(msg_item.FileName);
+                                    auto file_bin_offset = builder.CreateVector(msg_item.FileChunk.get(),
+                                                                                msg_item.ChunkSize);
+                                    auto file_content = fbs::msg::CreateFileChunk(builder,
+                                                                                  file_name_offset,
+                                                                                  msg_item.Sequence,
+                                                                                  file_bin_offset);
+                                    msg_entity = fbs::msg::CreateMsgEntity(builder,
+                                                                           builder.CreateString(sender),
+                                                                           msg_item.ContentType,
+                                                                           file_content.Union());
+                                    break;
+                                }
+                                    
+                                case fbs::msg::MsgContent_NONE:{
+                                    msg_entity = fbs::msg::CreateMsgEntity(builder,
+                                                                           builder.CreateString(sender),
+                                                                           msg_item.ContentType);
+                                    break;
+                                }
+                            }
+                            
+                            ret_list.push_back(msg_entity);
+                        }
+                        msg_queue.clear();
+                        
+                        auto resp = fbs::msg::CreateGetMsgResponse(builder,
+                                                                   builder.CreateVector(ret_list),
+                                                                   fbs::Status_OK, 0);
+                        fbs::msg::FinishGetMsgResponseBuffer(builder, resp);
+                        
+                        response_writer(builder.GetBufferPointer(), builder.GetSize());
+                        
+                    }catch(const session::BadTransformException&){
+                        send_status(fbs::Status_AUTH_ERROR);
+                    }
+                }else{
+                    send_status(fbs::Status_AUTH_ERROR);
+                }
+                
+            }else{
+                Log::W("Get Message Handler") << "Payload Format Error" << std::endl;
+                send_status(fbs::Status_PAYLOAD_FORMAT_INVALID);
+            }
         };
         
         const HandleFunc handlePutMessage = HANDLE_FUNC(){
             
+            //Verify request
+            flatbuffers::Verifier verifier(request.payload()->Data(), request.payload()->size());
+            if(fbs::msg::VerifyPutMsgRequestBuffer(verifier)){
+                
+                auto* req = fbs::msg::GetPutMsgRequest(request.payload()->Data());
+                const auto* session = req->session();
+                
+                if(session::IsSessionExist(*session)){
+                    
+                    try{
+                        
+                        auto username = session::GetStringValue(*session, session::SESSION_KEY_USERNAME);
+                        const auto& channel_id = req->channel_id()->str();
+                        
+                        msg_entity_t msg_entity;
+                        const auto* msg_content = req->msg();
+                        msg_entity.ContentType = msg_content->content_type();
+                        msg_entity.Sender = username;
+                        
+                        switch(msg_content->content_type()){
+                            case fbs::msg::MsgContent_StringContent:{
+                                const auto* str_content =
+                                    reinterpret_cast<const fbs::msg::StringContent*>(msg_content->content());
+                                
+                                msg_entity.String = str_content->data()->str();
+                                break;
+                            }
+                                
+                            case fbs::msg::MsgContent_FileChunk:{
+                                const auto* file_content =
+                                    reinterpret_cast<const fbs::msg::FileChunk*>(msg_content->content());
+                                
+                                const auto* file_data = file_content->data();
+                                auto* storage = new sbyte_t[file_data->size()];
+                                ::memcpy(storage, file_data->Data(), file_data->size());
+                                msg_entity.ChunkSize = file_data->size();
+                                msg_entity.FileChunk.reset(storage);
+                                
+                                break;
+                            }
+                                
+                            case fbs::msg::MsgContent_NONE:{
+                                break;
+                            }
+                        }
+                        
+                        //Send to channel's member(s)
+                        const auto& member_set = ChannelMemberMap[channel_id];
+                        for(const auto& member : member_set){
+                            if(member == msg_entity.Sender) continue;
+                            auto& mail_box = UserMailBoxes[member];
+                            mail_box[channel_id].push_back(msg_entity);
+                        }
+                        
+                        SendStatusResponse(fbs::Status_OK, response_writer);
+                        
+                    }catch(const session::BadTransformException&){
+                        SendStatusResponse(fbs::Status_AUTH_ERROR, response_writer);
+                    }
+                    
+                }else{
+                   SendStatusResponse(fbs::Status_AUTH_ERROR, response_writer);
+                }
+                
+            }else{
+                Log::W("Get Message Handler") << "Payload Format Error" << std::endl;
+                SendStatusResponse(fbs::Status_PAYLOAD_FORMAT_INVALID, response_writer);
+            }
         };
     }
     

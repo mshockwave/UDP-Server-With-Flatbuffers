@@ -2,7 +2,7 @@ namespace fbs.msg;
 
 table FileChunk{
   file_name:string;
-  seq:int;
+  seq:long;
   data:[byte];
 }
 table StringContent {

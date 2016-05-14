@@ -24,17 +24,17 @@ namespace msg {
 struct GetMsgResponse;
 
 struct GetMsgResponse FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
-  fbs::Status status_code() const { return static_cast<fbs::Status>(GetField<int8_t>(4, 0)); }
-  const fbs::Session *session() const { return GetPointer<const fbs::Session *>(6); }
-  const flatbuffers::Vector<flatbuffers::Offset<fbs::msg::MsgEntity>> *msg_list() const { return GetPointer<const flatbuffers::Vector<flatbuffers::Offset<fbs::msg::MsgEntity>> *>(8); }
+  const flatbuffers::Vector<flatbuffers::Offset<fbs::msg::MsgEntity>> *msg_list() const { return GetPointer<const flatbuffers::Vector<flatbuffers::Offset<fbs::msg::MsgEntity>> *>(4); }
+  fbs::Status status_code() const { return static_cast<fbs::Status>(GetField<int8_t>(6, 0)); }
+  const fbs::Session *session() const { return GetPointer<const fbs::Session *>(8); }
   bool Verify(flatbuffers::Verifier &verifier) const {
     return VerifyTableStart(verifier) &&
-           VerifyField<int8_t>(verifier, 4 /* status_code */) &&
-           VerifyField<flatbuffers::uoffset_t>(verifier, 6 /* session */) &&
-           verifier.VerifyTable(session()) &&
-           VerifyField<flatbuffers::uoffset_t>(verifier, 8 /* msg_list */) &&
+           VerifyField<flatbuffers::uoffset_t>(verifier, 4 /* msg_list */) &&
            verifier.Verify(msg_list()) &&
            verifier.VerifyVectorOfTables(msg_list()) &&
+           VerifyField<int8_t>(verifier, 6 /* status_code */) &&
+           VerifyField<flatbuffers::uoffset_t>(verifier, 8 /* session */) &&
+           verifier.VerifyTable(session()) &&
            verifier.EndTable();
   }
 };
@@ -42,9 +42,9 @@ struct GetMsgResponse FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
 struct GetMsgResponseBuilder {
   flatbuffers::FlatBufferBuilder &fbb_;
   flatbuffers::uoffset_t start_;
-  void add_status_code(fbs::Status status_code) { fbb_.AddElement<int8_t>(4, static_cast<int8_t>(status_code), 0); }
-  void add_session(flatbuffers::Offset<fbs::Session> session) { fbb_.AddOffset(6, session); }
-  void add_msg_list(flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<fbs::msg::MsgEntity>>> msg_list) { fbb_.AddOffset(8, msg_list); }
+  void add_msg_list(flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<fbs::msg::MsgEntity>>> msg_list) { fbb_.AddOffset(4, msg_list); }
+  void add_status_code(fbs::Status status_code) { fbb_.AddElement<int8_t>(6, static_cast<int8_t>(status_code), 0); }
+  void add_session(flatbuffers::Offset<fbs::Session> session) { fbb_.AddOffset(8, session); }
   GetMsgResponseBuilder(flatbuffers::FlatBufferBuilder &_fbb) : fbb_(_fbb) { start_ = fbb_.StartTable(); }
   GetMsgResponseBuilder &operator=(const GetMsgResponseBuilder &);
   flatbuffers::Offset<GetMsgResponse> Finish() {
@@ -54,12 +54,12 @@ struct GetMsgResponseBuilder {
 };
 
 inline flatbuffers::Offset<GetMsgResponse> CreateGetMsgResponse(flatbuffers::FlatBufferBuilder &_fbb,
+   flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<fbs::msg::MsgEntity>>> msg_list = 0,
    fbs::Status status_code = fbs::Status_OK,
-   flatbuffers::Offset<fbs::Session> session = 0,
-   flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<fbs::msg::MsgEntity>>> msg_list = 0) {
+   flatbuffers::Offset<fbs::Session> session = 0) {
   GetMsgResponseBuilder builder_(_fbb);
-  builder_.add_msg_list(msg_list);
   builder_.add_session(session);
+  builder_.add_msg_list(msg_list);
   builder_.add_status_code(status_code);
   return builder_.Finish();
 }

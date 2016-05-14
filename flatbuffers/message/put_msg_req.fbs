@@ -1,0 +1,12 @@
+include "../types.fbs";
+include "_msg_types.fbs";
+
+namespace fbs.msg;
+
+table PutMsgRequest {
+  session:Session;
+
+  channel_id:string;
+  msg:MsgEntity;
+}
+root_type PutMsgRequest;

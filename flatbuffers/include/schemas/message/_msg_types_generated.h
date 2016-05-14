@@ -43,13 +43,13 @@ inline const char *EnumNameChannelType(ChannelType e) { return EnumNamesChannelT
 
 struct FileChunk FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   const flatbuffers::String *file_name() const { return GetPointer<const flatbuffers::String *>(4); }
-  int32_t seq() const { return GetField<int32_t>(6, 0); }
+  int64_t seq() const { return GetField<int64_t>(6, 0); }
   const flatbuffers::Vector<int8_t> *data() const { return GetPointer<const flatbuffers::Vector<int8_t> *>(8); }
   bool Verify(flatbuffers::Verifier &verifier) const {
     return VerifyTableStart(verifier) &&
            VerifyField<flatbuffers::uoffset_t>(verifier, 4 /* file_name */) &&
            verifier.Verify(file_name()) &&
-           VerifyField<int32_t>(verifier, 6 /* seq */) &&
+           VerifyField<int64_t>(verifier, 6 /* seq */) &&
            VerifyField<flatbuffers::uoffset_t>(verifier, 8 /* data */) &&
            verifier.Verify(data()) &&
            verifier.EndTable();
@@ -60,7 +60,7 @@ struct FileChunkBuilder {
   flatbuffers::FlatBufferBuilder &fbb_;
   flatbuffers::uoffset_t start_;
   void add_file_name(flatbuffers::Offset<flatbuffers::String> file_name) { fbb_.AddOffset(4, file_name); }
-  void add_seq(int32_t seq) { fbb_.AddElement<int32_t>(6, seq, 0); }
+  void add_seq(int64_t seq) { fbb_.AddElement<int64_t>(6, seq, 0); }
   void add_data(flatbuffers::Offset<flatbuffers::Vector<int8_t>> data) { fbb_.AddOffset(8, data); }
   FileChunkBuilder(flatbuffers::FlatBufferBuilder &_fbb) : fbb_(_fbb) { start_ = fbb_.StartTable(); }
   FileChunkBuilder &operator=(const FileChunkBuilder &);
@@ -72,11 +72,11 @@ struct FileChunkBuilder {
 
 inline flatbuffers::Offset<FileChunk> CreateFileChunk(flatbuffers::FlatBufferBuilder &_fbb,
    flatbuffers::Offset<flatbuffers::String> file_name = 0,
-   int32_t seq = 0,
+   int64_t seq = 0,
    flatbuffers::Offset<flatbuffers::Vector<int8_t>> data = 0) {
   FileChunkBuilder builder_(_fbb);
-  builder_.add_data(data);
   builder_.add_seq(seq);
+  builder_.add_data(data);
   builder_.add_file_name(file_name);
   return builder_.Finish();
 }
