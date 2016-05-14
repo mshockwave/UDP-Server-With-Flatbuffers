@@ -1,0 +1,12 @@
+include "../types.fbs";
+include "_msg_types.fbs";
+
+namespace fbs.msg;
+
+table ViewChannelResponse {
+  status_code:Status;
+  session:Session; //Reserve
+
+  channels:[ChannelEntity];
+}
+root_type ViewChannelResponse;

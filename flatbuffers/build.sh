@@ -32,7 +32,11 @@ for d in $(ls);do
     else
       echo "#include <flatbuffers/flatbuffers.h>" > $header_file
     fi
-    for f in $(ls ${d}/*.h);do
+    #Put first level header on the top
+    for f in $(ls ${d}/*.h | grep -e "^_");do      
+      echo "#include \"${f}\"" >> $header_file
+    done
+    for f in $(ls ${d}/*.h | grep -e "^[^_]");do
       echo "#include \"${f}\"" >> $header_file
     done
   fi

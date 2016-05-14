@@ -1,0 +1,10 @@
+include "../types.fbs";
+
+namespace fbs.account;
+
+table SearchRequest {
+  session:Session;
+
+  query_str:string;
+}
+root_type SearchRequest;

@@ -1,0 +1,13 @@
+include "../types.fbs";
+include "_msg_types.fbs";
+
+namespace fbs.msg;
+
+table CreateChannel {
+  session:Session;
+
+  name:string; //Empty for private channel
+  channel_type:ChannelType;
+  member:[string];
+}
+root_type CreateChannel;

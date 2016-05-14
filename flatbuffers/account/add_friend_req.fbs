@@ -1,0 +1,10 @@
+include "../types.fbs";
+
+namespace fbs.account;
+
+table AddFriendRequest{
+  session:Session;
+
+  username:string;
+}
+root_type AddFriendRequest;

@@ -1,0 +1,9 @@
+include "../types.fbs";
+
+namespace fbs.msg;
+
+table GetMsgRequest {
+  session:Session;
+  channel:string;
+}
+root_type GetMsgRequest;

@@ -1,0 +1,8 @@
+include "../types.fbs";
+
+namespace fbs.account;
+
+table ViewFriendRequest{
+  session:Session;
+}
+root_type ViewFriendRequest;

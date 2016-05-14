@@ -1,0 +1,11 @@
+include "../types.fbs";
+
+namespace fbs.msg;
+
+table CreateChannelResponse {
+  status_code:Status;
+  session:Session; //Reserve
+
+  channel_id:string;
+}
+root_type CreateChannelResponse;

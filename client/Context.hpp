@@ -27,6 +27,15 @@ namespace context {
         
     } //namespace account
     
+    namespace msg{
+        
+        typedef std::string channel_id_t;
+        
+        extern channel_id_t CurrentChannelId;
+        extern std::vector<channel_id_t> Channels;
+        
+    } //namespace msg
+    
     inline void PrintDivideLine(){
         int i;
         for(i = 0; i < 30; i++) std::cout << '=';
@@ -61,7 +70,15 @@ namespace context {
         VIEW_FRIENDS = 20,
         VIEW_PENDING_FRIENDS = 21,
         ADD_FRIEND = 22,
-        CONFIRM_PENDING_FRIEND = 23
+        CONFIRM_PENDING_FRIEND = 23,
+        
+        //Message
+        MSG_ENTRY = 24,
+        MSG_CREATE_PRIVATE_CHANNEL = 25,
+        MSG_CREATE_GROUP_CHANNEL = 26,
+        MSG_VIEW_CHANNELS = 27,
+        MSG_MAIN_WINDOW = 28,
+        MSG_JOIN_GROUP = 29
     };
     
     typedef std::function<Screen(Screen)> ScreenHandler;

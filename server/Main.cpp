@@ -19,6 +19,7 @@ extern "C"{
 #include "Router.hpp"
 #include "Account.hpp"
 #include "Post.hpp"
+#include "Message.hpp"
 
 #include <schemas/core.h>
 
@@ -76,12 +77,15 @@ int main(int argc, char **argv){
     //Initialize routers
     Router root_router,
             account_router,
-            post_router;
+            post_router,
+            message_router;
     handlers::InitAccountHandlers(account_router);
     handlers::InitPostHandlers(post_router);
+    handlers::InitMessageHandlers(message_router);
     
     root_router.Path("/account", account_router);
     root_router.Path("/post", post_router);
+    root_router.Path("/message", message_router);
     
     byte_t recv_buffer[RECV_BUFFER_SIZE];
     

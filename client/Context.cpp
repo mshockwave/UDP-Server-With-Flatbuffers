@@ -26,6 +26,13 @@ namespace context {
         std::vector<std::string> PendingFriends;
     } //namespace account
     
+    namespace msg{
+        
+        channel_id_t CurrentChannelId;
+        std::vector<channel_id_t> Channels;
+        
+    } //namespace msg
+    
     ScreenHandler& GetScreen(Screen scr){
         auto it_screen = ScreenMap.find(scr);
         return (it_screen == ScreenMap.end())? ScreenMap[Screen::ENTRY] : (it_screen->second);
@@ -70,8 +77,8 @@ namespace context {
             PrintDivideLine();
             
             std::cout << "[A]dd Post\t" << "[V]iew Posts" << std::endl;
-            std::cout << "[S]earch Accounts" << std::endl;
-            std::cout << "[F]riend" << std::endl;
+            std::cout << "[S]earch Accounts\t" << "[F]riend" << std::endl;
+            std::cout << "[M]essage" << std::endl;
             std::cout << "[L]ogout" << std::endl;
             std::cout << PROMPT_CHAR;
             
@@ -97,6 +104,10 @@ namespace context {
                     
                 case 'f':{
                     return Screen::FRIEND_ENTRY;
+                }
+                    
+                case 'm': {
+                    return Screen::MSG_ENTRY;
                 }
                     
                 default:{

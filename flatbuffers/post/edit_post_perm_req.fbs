@@ -1,5 +1,5 @@
 include "../types.fbs";
-include "post_perm.fbs";
+include "_post_perm.fbs";
 
 namespace fbs.post;
 

@@ -12,6 +12,7 @@ extern "C"{
 #include "Context.hpp"
 #include "Account.hpp"
 #include "Post.hpp"
+#include "Message.hpp"
 
 #define USAGE_FORMAT_STR \
     "Usage: %s <server address> <server port>\n"
@@ -44,6 +45,7 @@ int main(int argc, char **argv){
     context::InitScreens();
     account::InitScreens();
     post::InitScreens();
+    msg::InitScreens();
     
     auto screen = context::Screen::ENTRY;
     do{

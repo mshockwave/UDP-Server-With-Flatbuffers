@@ -1,4 +1,5 @@
 #include "core.h"
+#include "post/_post_perm_generated.h"
 #include "post/edit_comment_req_generated.h"
 #include "post/edit_post_perm_req_generated.h"
 #include "post/edit_post_req_generated.h"

@@ -1,0 +1,8 @@
+include "../types.fbs";
+
+namespace fbs.msg;
+
+table ViewChannelRequest {
+  session:Session;
+}
+root_type ViewChannelRequest;
