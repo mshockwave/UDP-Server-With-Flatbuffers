@@ -444,11 +444,7 @@ namespace account {
                                          std::cout << "\t[" << index++ << "] " << name << std::endl;
                                      }
                                      
-                                     if(index == 1){
-                                         //No friend requests QQ
-                                     }else{
-                                         std::cout << "Send [M]essage" << std::endl;
-                                     }
+                                     /*Reserve functions*/
                                      std::cout << "[B]ack" << std::endl;
                                      
                                      std::cout << context::PROMPT_CHAR;

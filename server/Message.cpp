@@ -206,6 +206,78 @@ namespace handlers{
             }
         };
         
+        const HandleFunc handleJoinGroup = HANDLE_FUNC(){
+            //Verify request
+            flatbuffers::Verifier verifier(request.payload()->Data(), request.payload()->size());
+            if(fbs::msg::VerifyJoinGroupRequestBuffer(verifier)){
+                
+                auto* req = fbs::msg::GetJoinGroupRequest(request.payload()->Data());
+                const auto* session = req->session();
+                
+                if(session::IsSessionExist(*session)){
+                    
+                    try{
+                        auto username = session::GetStringValue(*session, session::SESSION_KEY_USERNAME);
+                        const auto& group_name = req->group_name()->str();
+                        
+                        if(ChannelMemberMap.find(group_name) == ChannelMemberMap.end()){
+                            //Not found
+                            SendStatusResponse(fbs::Status_INVALID_REQUEST_ARGUMENT, response_writer);
+                        }else{
+                            ChannelMemberMap[group_name].insert(username);
+                            SendStatusResponse(fbs::Status_OK, response_writer);
+                        }
+                        
+                    }catch(const session::BadTransformException&){
+                        SendStatusResponse(fbs::Status_AUTH_ERROR, response_writer);
+                    }
+                    
+                }else{
+                    SendStatusResponse(fbs::Status_AUTH_ERROR, response_writer);
+                }
+                
+            }else{
+                Log::W("Join Group Handler") << "Payload Format Error" << std::endl;
+                SendStatusResponse(fbs::Status_PAYLOAD_FORMAT_INVALID, response_writer);
+            }
+        };
+        
+        const HandleFunc handleLeaveGroup = HANDLE_FUNC(){
+            //Verify request
+            flatbuffers::Verifier verifier(request.payload()->Data(), request.payload()->size());
+            if(fbs::msg::VerifyLeaveGroupRequestBuffer(verifier)){
+                
+                auto* req = fbs::msg::GetLeaveGroupRequest(request.payload()->Data());
+                const auto* session = req->session();
+                
+                if(session::IsSessionExist(*session)){
+                    
+                    try{
+                        auto username = session::GetStringValue(*session, session::SESSION_KEY_USERNAME);
+                        const auto& group_name = req->group_name()->str();
+                        
+                        if(ChannelMemberMap.find(group_name) == ChannelMemberMap.end()){
+                            //Not found
+                            SendStatusResponse(fbs::Status_INVALID_REQUEST_ARGUMENT, response_writer);
+                        }else{
+                            ChannelMemberMap[group_name].erase(username);
+                            SendStatusResponse(fbs::Status_OK, response_writer);
+                        }
+                        
+                    }catch(const session::BadTransformException&){
+                        SendStatusResponse(fbs::Status_AUTH_ERROR, response_writer);
+                    }
+                    
+                }else{
+                    SendStatusResponse(fbs::Status_AUTH_ERROR, response_writer);
+                }
+                
+            }else{
+                Log::W("Join Group Handler") << "Payload Format Error" << std::endl;
+                SendStatusResponse(fbs::Status_PAYLOAD_FORMAT_INVALID, response_writer);
+            }
+        };
+        
         const HandleFunc handleGetMessage = HANDLE_FUNC(){
             const auto send_status = [&response_writer](fbs::Status status)->void{
                 flatbuffers::FlatBufferBuilder builder;
@@ -373,6 +445,8 @@ namespace handlers{
     void InitMessageHandlers(Router &router){
         router.Path("/channel/new", message::handleCreateChannel)
         .Path("/channel", message::handleViewChannels)
+        .Path("/group/join", message::handleJoinGroup)
+        .Path("/group/leave", message::handleLeaveGroup)
         .Path("/get", message::handleGetMessage)
         .Path("/put", message::handlePutMessage);
     }

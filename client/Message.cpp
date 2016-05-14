@@ -292,7 +292,7 @@ namespace msg {
             FD_SET(stdin_fd, &fds);
             
             TimeVal timeout{0};
-            timeout.tv_usec = current_timeout_us; //100ms
+            timeout.tv_usec = current_timeout_us;
             
             int maxfd = context::SocketFd + 1;
             if((nready = ::select(maxfd, &fds, nullptr, nullptr, &timeout)) < 0){

@@ -1,0 +1,10 @@
+include "../types.fbs";
+
+namespace fbs.msg;
+
+table LeaveGroupRequest{
+  session:Session;
+
+  group_name:string;
+}
+root_type LeaveGroupRequest;
