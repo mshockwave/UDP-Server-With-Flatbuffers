@@ -1,0 +1,8 @@
+include "../types.fbs";
+
+namespace fbs.account;
+
+table GetProfileRequest{
+  session:Session;
+}
+root_type GetProfileRequest;

@@ -144,6 +144,120 @@ namespace account {
         return next_screen;
     };
     
+    const context::ScreenHandler handleGetProfile = SCREEN_HANDLER(){
+        
+        context::PrintDivideLine();
+        
+        auto next_screen = context::Screen::MAIN;
+        
+        flatbuffers::FlatBufferBuilder builder_profile, builder_req;
+        auto session = fbs::CreateSession(builder_profile,
+                                          builder_profile.CreateString(context::CurrentTokenStr));
+        auto req = fbs::account::CreateGetProfileRequest(builder_profile,
+                                                         session);
+        fbs::account::FinishGetProfileRequestBuffer(builder_profile, req);
+        
+        utils::BuildRequest("/account/profile", builder_req, builder_profile);
+        
+        utils::ClientSendAndRead(context::SocketFd,
+                                 builder_req,
+                                 [&next_screen](char *buffer,ssize_t n_bytes)->void{
+                                     
+                                     if(n_bytes < 0){
+                                         std::cout << "Communication Error" << std::endl;
+                                         return;
+                                     }
+                                     
+                                     auto* resp = fbs::account::GetGetProfileResponse(buffer);
+                                     if(resp->status_code() != fbs::Status_OK){
+                                         std::cout << "Error: ";
+                                         std::cout << utils::GetErrorVerbose(resp->status_code()) << std::endl;
+                                     }else{
+                                         std::cout << "Nick Name: " << resp->nickname()->str() << std::endl;
+                                         std::cout << "Birthday: " << resp->birthday()->str() << std::endl;
+                                         
+                                         std::cout << "Edit Profile?[Y/n]: ";
+                                         char input_char;
+                                         std::cin >> input_char;
+                                         if(std::tolower(input_char) == 'y'){
+                                             next_screen = context::Screen::EDIT_PROFILE;
+                                         }
+                                         
+                                     }
+                                 });
+        
+        return next_screen;
+    };
+    
+    const context::ScreenHandler handleEditProfile = SCREEN_HANDLER(){
+        
+        context::PrintDivideLine();
+        
+        std::string nickname("#");
+        std::cout << "Edit Nickname('#' if not modified): ";
+        std::cin >> nickname;
+        std::cout << "Edit Birthday?[Y/n]: ";
+        char input_char;
+        std::cin >> input_char;
+        
+        flatbuffers::FlatBufferBuilder builder_edit, builder_req;
+        auto session = fbs::CreateSession(builder_edit,
+                                          builder_edit.CreateString(context::CurrentTokenStr));
+        auto req = fbs::account::CreateEditProfileRequest(builder_edit);
+        
+        if(std::tolower(input_char) == 'y'){
+            int year, month, date;
+            std::cout << "Enter Birthday(year month date): ";
+            std::cin >> year >> month >> date;
+            if( !(year > 0 &&
+                  month >= 1 && month <= 12 &&
+                  date >= 1 && date <= 31) ){
+                std::cout << "Error: Invalid Date Format" << std::endl;
+                
+                req = fbs::account::CreateEditProfileRequest(builder_edit,
+                                                             session,
+                                                             nickname != "#",
+                                                             builder_edit.CreateString(nickname),
+                                                             0);
+            }else{
+                auto birthday = fbs::account::BirthdayStruct(year, month, date);
+                req = fbs::account::CreateEditProfileRequest(builder_edit,
+                                                             session,
+                                                             nickname != "#",
+                                                             builder_edit.CreateString(nickname),
+                                                             1,
+                                                             &birthday);
+            }
+        }else{
+            req = fbs::account::CreateEditProfileRequest(builder_edit,
+                                                         session,
+                                                         nickname != "#",
+                                                         builder_edit.CreateString(nickname),
+                                                         0);
+        }
+        
+        fbs::account::FinishEditProfileRequestBuffer(builder_edit, req);
+        utils::BuildRequest("/account/profile/edit", builder_req, builder_edit);
+        
+        utils::ClientSendAndRead(context::SocketFd,
+                                 builder_req, [](char* buffer, ssize_t n_bytes)->void{
+                                     //Parsing response
+                                     if(n_bytes < 0){
+                                         std::cout << "Communication Error" << std::endl;
+                                         return;
+                                     }
+                                     
+                                     auto* resp = fbs::GetGeneralResponse(buffer);
+                                     if(resp->status_code() != fbs::Status_OK){
+                                         std::cout << "Error: ";
+                                     }
+                                     
+                                     std::cout << utils::GetErrorVerbose(resp->status_code()) << std::endl;
+                                 });
+        
+        return context::Screen::GET_PROFILE;
+    };
+    
     const context::ScreenHandler handleSearchAccount = SCREEN_HANDLER(){
         
         context::PrintDivideLine();
@@ -354,7 +468,7 @@ namespace account {
         return next_screen;
     };
     
-    const context::ScreenHandler handleConfirmFriendRequets = SCREEN_HANDLER(){
+    const context::ScreenHandler handleConfirmFriendRequest = SCREEN_HANDLER(){
         
         //context::PrintDivideLine();
         
@@ -469,11 +583,13 @@ namespace account {
         context::AddScreen(context::Screen::REGISTER, handleRegister);
         context::AddScreen(context::Screen::LOGIN, handleLogin);
         context::AddScreen(context::Screen::LOGOUT, handleLogout);
+        context::AddScreen(context::Screen::GET_PROFILE, handleGetProfile);
+        context::AddScreen(context::Screen::EDIT_PROFILE, handleEditProfile);
         context::AddScreen(context::Screen::SEARCH_ACCOUNT, handleSearchAccount);
         context::AddScreen(context::Screen::FRIEND_ENTRY, handleFriendEntry);
         context::AddScreen(context::Screen::ADD_FRIEND, handleAddFriend);
         context::AddScreen(context::Screen::VIEW_PENDING_FRIENDS, handleViewPendingFriendReq);
-        context::AddScreen(context::Screen::CONFIRM_PENDING_FRIEND, handleConfirmFriendRequets);
+        context::AddScreen(context::Screen::CONFIRM_PENDING_FRIEND, handleConfirmFriendRequest);
         context::AddScreen(context::Screen::VIEW_FRIENDS, handleViewFriends);
     }
     

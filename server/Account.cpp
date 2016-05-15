@@ -187,6 +187,109 @@ namespace handlers{
             }
         };
         
+        const HandleFunc handleGetProfile = HANDLE_FUNC(){
+            
+            const auto send_status = [&response_writer](fbs::Status status)->void{
+                flatbuffers::FlatBufferBuilder builder;
+                auto resp = fbs::account::CreateGetProfileResponse(builder,
+                                                                   status);
+                fbs::account::FinishGetProfileResponseBuffer(builder, resp);
+                response_writer(builder.GetBufferPointer(), builder.GetSize());
+            };
+            
+            //Verify request
+            flatbuffers::Verifier verifier(request.payload()->Data(), request.payload()->size());
+            if(fbs::account::VerifyGetProfileRequestBuffer(verifier)){
+                
+                auto* req = fbs::account::GetGetProfileRequest(request.payload()->Data());
+                const auto* session = req->session();
+                
+                if(session::IsSessionExist(*session)){
+                    
+                    using namespace boost::property_tree;
+                    try{
+                        
+                        auto username = session::GetStringValue(*session, session::SESSION_KEY_USERNAME);
+                        
+                        auto& account_tree = AccountProfiles.get_child(GetPath(username));
+                        
+                        auto nickname = account_tree.get(GetPath(PROFILE_NIKNAME_KEY), username);
+                        auto birthday = account_tree.get(GetPath(PROFILE_BIRTHDAY_KEY), "N/A");
+                        
+                        flatbuffers::FlatBufferBuilder builder;
+                        auto resp = fbs::account::CreateGetProfileResponse(builder,
+                                                                           fbs::Status_OK, 0,
+                                                                           builder.CreateString(nickname),
+                                                                           builder.CreateString(birthday));
+                        fbs::account::FinishGetProfileResponseBuffer(builder, resp);
+                        
+                        response_writer(builder.GetBufferPointer(), builder.GetSize());
+                        
+                    }catch(const session::BadTransformException&){
+                        send_status(fbs::Status_AUTH_ERROR);
+                    }catch(const ptree_bad_path&){
+                        send_status(fbs::Status_INVALID_REQUEST_ARGUMENT);
+                    }
+                    
+                }else{
+                    send_status(fbs::Status_AUTH_ERROR);
+                }
+                
+            }else{
+                Log::W("Get Profile Handler") << "Payload format error" << std::endl;
+                send_status(fbs::Status_PAYLOAD_FORMAT_INVALID);
+            }
+        };
+        const HandleFunc handleEditProfile = HANDLE_FUNC(){
+            //Verify request
+            flatbuffers::Verifier verifier(request.payload()->Data(), request.payload()->size());
+            if(fbs::account::VerifyEditProfileRequestBuffer(verifier)){
+                
+                auto* req = fbs::account::GetEditProfileRequest(request.payload()->Data());
+                const auto* session = req->session();
+                
+                if(session::IsSessionExist(*session)){
+                    
+                    using namespace boost::property_tree;
+                    try{
+                        
+                        auto username = session::GetStringValue(*session, session::SESSION_KEY_USERNAME);
+                        
+                        ptree& account_tree = AccountProfiles.get_child(GetPath(username));
+                        
+                        if(req->edit_nickname()){
+                            auto nickname = req->nickname()->str();
+                            account_tree.put(GetPath(PROFILE_NIKNAME_KEY), nickname);
+                        }
+                        
+                        if(req->edit_birthday()){
+                            auto* birthday = req->birthday();
+                            std::stringstream ss;
+                            ss << (int)birthday->year() << " / ";
+                            ss << (int)birthday->month() << " / ";
+                            ss << (int)birthday->day();
+                            
+                            account_tree.put(GetPath(PROFILE_BIRTHDAY_KEY), ss.str());
+                        }
+                        
+                        SendStatusResponse(fbs::Status_OK, response_writer);
+                        
+                    }catch(const session::BadTransformException&){
+                        SendStatusResponse(fbs::Status_AUTH_ERROR, response_writer);
+                    }catch(const ptree_bad_path&){
+                        SendStatusResponse(fbs::Status_INVALID_REQUEST_ARGUMENT, response_writer);
+                    }
+                    
+                }else{
+                    SendStatusResponse(fbs::Status_AUTH_ERROR, response_writer);
+                }
+                
+            }else{
+                Log::W("Edit Profile Handler") << "Payload format error" << std::endl;
+                SendStatusResponse(fbs::Status_PAYLOAD_FORMAT_INVALID, response_writer);
+            }
+        };
+        
         const HandleFunc handleSearchAccount = HANDLE_FUNC(){
             
             const auto send_status = [&response_writer](fbs::Status status)->void{
@@ -452,6 +555,8 @@ namespace handlers{
         router.Path("/register", account::handleRegister)
         .Path("/login", account::handleLogin)
         .Path("/logout", account::handleLogout)
+        .Path("/profile", account::handleGetProfile)
+        .Path("/profile/edit", account::handleEditProfile)
         .Path("/search", account::handleSearchAccount)
         .Path("/friend", account::handleShowFriends)
         .Path("/friend/pending", account::handleShowFriendRequests)

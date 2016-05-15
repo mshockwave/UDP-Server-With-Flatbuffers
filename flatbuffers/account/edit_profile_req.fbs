@@ -1,0 +1,19 @@
+include "../types.fbs";
+
+namespace fbs.account;
+
+struct BirthdayStruct{
+  year:uint;
+  month:uint;
+  day:uint;
+}
+
+table EditProfileRequest{
+  session:Session;
+
+  edit_nickname:bool;
+  nickname:string;
+  edit_birthday:bool;
+  birthday:BirthdayStruct;
+}
+root_type EditProfileRequest;

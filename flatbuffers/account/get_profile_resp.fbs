@@ -1,0 +1,12 @@
+include "../types.fbs";
+
+namespace fbs.account;
+
+table GetProfileResponse{
+  status_code:Status;
+  session:Session; //Reserve
+
+  nickname:string;
+  birthday:string;
+}
+root_type GetProfileResponse;

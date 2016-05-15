@@ -71,22 +71,24 @@ namespace context {
         REMOVE_COMMENT = 17,
         
         //Account
-        FRIEND_ENTRY = 18,
-        SEARCH_ACCOUNT = 19,
-        VIEW_FRIENDS = 20,
-        VIEW_PENDING_FRIENDS = 21,
-        ADD_FRIEND = 22,
-        CONFIRM_PENDING_FRIEND = 23,
+        GET_PROFILE = 18,
+        EDIT_PROFILE = 19,
+        FRIEND_ENTRY = 20,
+        SEARCH_ACCOUNT = 21,
+        VIEW_FRIENDS = 22,
+        VIEW_PENDING_FRIENDS = 23,
+        ADD_FRIEND = 24,
+        CONFIRM_PENDING_FRIEND = 25,
         
         //Message
-        MSG_ENTRY = 24,
-        MSG_CREATE_PRIVATE_CHANNEL = 25,
-        MSG_CREATE_GROUP_CHANNEL = 26,
-        MSG_VIEW_CHANNELS = 27,
-        MSG_MAIN_WINDOW = 28,
-        MSG_JOIN_GROUP = 29,
-        MSG_LEAVE_GROUP = 30,
-        MSG_JOIN_CHANNEL = 31
+        MSG_ENTRY = 26,
+        MSG_CREATE_PRIVATE_CHANNEL = 27,
+        MSG_CREATE_GROUP_CHANNEL = 28,
+        MSG_VIEW_CHANNELS = 29,
+        MSG_MAIN_WINDOW = 30,
+        MSG_JOIN_GROUP = 31,
+        MSG_LEAVE_GROUP = 32,
+        MSG_JOIN_CHANNEL = 33
     };
     
     typedef std::function<Screen(Screen)> ScreenHandler;

@@ -81,6 +81,7 @@ namespace context {
             
             std::cout << "[A]dd Post\t" << "[V]iew Posts" << std::endl;
             std::cout << "[S]earch Accounts\t" << "[F]riend" << std::endl;
+            std::cout << "My [P]rofile" << std::endl;
             std::cout << "[M]essage" << std::endl;
             std::cout << "[L]ogout" << std::endl;
             std::cout << PROMPT_CHAR;
@@ -107,6 +108,10 @@ namespace context {
                     
                 case 'f':{
                     return Screen::FRIEND_ENTRY;
+                }
+                    
+                case 'p':{
+                    return Screen::GET_PROFILE;
                 }
                     
                 case 'm': {

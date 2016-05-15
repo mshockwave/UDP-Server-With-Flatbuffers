@@ -18,6 +18,8 @@ namespace handlers{
      }
      */
     
+#define PROFILE_BIRTHDAY_KEY    "birthday"
+    
     void InitAccountHandlers(Router&);
     
 }; //namespace handlers
