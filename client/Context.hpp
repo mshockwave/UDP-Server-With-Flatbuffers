@@ -6,6 +6,7 @@
 #include <iostream>
 #include <vector>
 #include <unordered_map>
+#include <set>
 
 namespace context {
     
@@ -34,6 +35,7 @@ namespace context {
         
         extern channel_id_t CurrentChannelId;
         extern std::vector<channel_id_t> Channels;
+        extern std::set<size_t> GroupChannelIndex; //We need ordered set
         
         //File name -> fd
         extern std::unordered_map<std::string, int> TransferFdMap;
@@ -83,7 +85,8 @@ namespace context {
         MSG_VIEW_CHANNELS = 27,
         MSG_MAIN_WINDOW = 28,
         MSG_JOIN_GROUP = 29,
-        MSG_JOIN_CHANNEL = 30
+        MSG_LEAVE_GROUP = 30,
+        MSG_JOIN_CHANNEL = 31
     };
     
     typedef std::function<Screen(Screen)> ScreenHandler;

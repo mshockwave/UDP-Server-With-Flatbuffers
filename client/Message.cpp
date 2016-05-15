@@ -23,8 +23,9 @@ namespace msg {
         
         auto next_screen = context::Screen::MAIN;
         
-        std::cout << "[G]roup Chat\t" << "[P]rivate Chat" << std::endl;
-        std::cout << "[C]onversations" << std::endl;
+        std::cout << "Create [G]roup Chat\t" << "Create [P]rivate Chat" << std::endl;
+        std::cout << "View [C]onversations" << std::endl;
+        std::cout << "[J]oin Group Chat" << std::endl;
         std::cout << "[B]ack" << std::endl;
         std::cout << context::PROMPT_CHAR;
         
@@ -48,6 +49,11 @@ namespace msg {
                 
             case 'c':{
                 next_screen = context::Screen::MSG_VIEW_CHANNELS;
+                break;
+            }
+                
+            case 'j':{
+                next_screen = context::Screen::MSG_JOIN_GROUP;
                 break;
             }
                 
@@ -173,7 +179,9 @@ namespace msg {
                                      std::cout << "Result count: "
                                      << (int)resp->channels()->Length() << std::endl;
                                      using context::msg::Channels;
+                                     using context::msg::GroupChannelIndex;
                                      Channels.clear();
+                                     GroupChannelIndex.clear();
                                      int index = 1;
                                      for(auto* channel : *(resp->channels())){
                                          Channels.push_back(channel->channel_id()->str());
@@ -181,6 +189,7 @@ namespace msg {
                                          std::cout << channel->display_name()->str();
                                          if(channel->type() == fbs::msg::ChannelType_GROUP){
                                              std::cout << " [group]";
+                                             GroupChannelIndex.insert(index - 1);
                                          }
                                          std::cout << std::endl;
                                      }
@@ -188,7 +197,7 @@ namespace msg {
                                      if(index == 1){
                                          //No channel
                                      }else{
-                                         std::cout << "[J]oin\t" << "[L]eave" << std::endl;
+                                         std::cout << "[J]oin\t" << "[L]eave Group" << std::endl;
                                      }
                                      std::cout << "[B]ack" << std::endl;
                                      std::cout << context::PROMPT_CHAR;
@@ -206,7 +215,10 @@ namespace msg {
                                              break;
                                          }
                                              
-                                        //TODO
+                                         case 'l':{
+                                             next_screen = context::Screen::MSG_LEAVE_GROUP;
+                                             break;
+                                         }
                                              
                                          default:
                                              std::cout << "Unrecognized command: " << input_char << std::endl;
@@ -231,6 +243,94 @@ namespace msg {
         }else{
             CurrentChannelId = Channels[index-1];
             next_screen = context::Screen::MSG_MAIN_WINDOW;
+        }
+        
+        return next_screen;
+    };
+    
+    const context::ScreenHandler handleJoinGroup = SCREEN_HANDLER(){
+        
+        context::PrintDivideLine();
+        
+        auto next_screen = context::Screen::MSG_ENTRY;
+        
+        std::cout << "Enter Group Name: ";
+        std::string group_name("");
+        std::cin >> group_name;
+        
+        flatbuffers::FlatBufferBuilder builder_group, builder_req;
+        auto session = fbs::CreateSession(builder_group,
+                                          builder_group.CreateString(context::CurrentTokenStr));
+        auto req = fbs::msg::CreateJoinGroupRequest(builder_group,
+                                                    session,
+                                                    builder_group.CreateString(group_name));
+        fbs::msg::FinishJoinGroupRequestBuffer(builder_group, req);
+        utils::BuildRequest("/message/group/join", builder_req, builder_group);
+        
+        utils::ClientSendAndRead(context::SocketFd, builder_req,
+                                 [&next_screen](char* buffer, ssize_t n_bytes)->void{
+                                     //Parsing response
+                                     if(n_bytes < 0){
+                                         std::cout << "Communication Error" << std::endl;
+                                         return;
+                                     }
+                                     
+                                     auto* resp = fbs::GetGeneralResponse(buffer);
+                                     if(resp->status_code() != fbs::Status_OK){
+                                         std::cout << "Error: ";
+                                     }else{
+                                         next_screen = context::Screen::MSG_VIEW_CHANNELS;
+                                     }
+                                     
+                                     std::cout << utils::GetErrorVerbose(resp->status_code()) << std::endl;
+                                 });
+        
+        return next_screen;
+    };
+    
+    const context::ScreenHandler handleLeaveGroup = SCREEN_HANDLER(){
+        
+        auto next_screen = context::Screen::STAY;
+        
+        using namespace context::msg;
+        std::cout << "Enter index: ";
+        int index = 0;
+        std::cin >> index;
+        if(GroupChannelIndex.find((size_t)index) != GroupChannelIndex.end()){
+            auto channel_id = Channels[index - 1];
+            
+            flatbuffers::FlatBufferBuilder builder_leave, builder_req;
+            auto session = fbs::CreateSession(builder_leave,
+                                              builder_leave.CreateString(context::CurrentTokenStr));
+            auto req = fbs::msg::CreateLeaveGroupRequest(builder_leave,
+                                                         session,
+                                                         builder_leave.CreateString(channel_id));
+            fbs::msg::FinishLeaveGroupRequestBuffer(builder_leave, req);
+            
+            utils::BuildRequest("/message/group/leave", builder_req, builder_leave);
+            
+            utils::ClientSendAndRead(context::SocketFd, builder_req,
+                                     [&next_screen](char* buffer, ssize_t n_bytes)->void{
+                                         //Parsing response
+                                         if(n_bytes < 0){
+                                             std::cout << "Communication Error" << std::endl;
+                                             next_screen = context::Screen::MSG_ENTRY;
+                                             return;
+                                         }
+                                         
+                                         auto* resp = fbs::GetGeneralResponse(buffer);
+                                         if(resp->status_code() != fbs::Status_OK){
+                                             std::cout << "Error: ";
+                                             next_screen = context::Screen::MSG_ENTRY;
+                                         }else{
+                                             next_screen = context::Screen::MSG_VIEW_CHANNELS;
+                                         }
+                                         
+                                         std::cout << utils::GetErrorVerbose(resp->status_code()) << std::endl;
+                                     });
+            
+        }else{
+            std::cout << "Error: Not A Group" << std::endl;
         }
         
         return next_screen;
@@ -524,5 +624,7 @@ namespace msg {
         context::AddScreen(context::Screen::MSG_CREATE_GROUP_CHANNEL, handleCreateChannel);
         context::AddScreen(context::Screen::MSG_VIEW_CHANNELS, handleViewChannels);
         context::AddScreen(context::Screen::MSG_JOIN_CHANNEL, handleJoinChannel);
+        context::AddScreen(context::Screen::MSG_LEAVE_GROUP, handleLeaveGroup);
+        context::AddScreen(context::Screen::MSG_JOIN_GROUP, handleJoinGroup);
     }
 }

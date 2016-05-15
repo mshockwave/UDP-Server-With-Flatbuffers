@@ -308,6 +308,11 @@ namespace handlers{
                         std::vector<  flatbuffers::Offset<fbs::msg::MsgEntity> > ret_list;
                         
                         if(!msg_queue.empty()){
+                            /*
+                             Do not fetch all the message at a time
+                             Since the total vector content size 
+                             May exceed flatbuffers offset range
+                             */
                             const auto& msg_item = *(msg_queue.begin());
                             const auto& sender = msg_item.Sender;
                             auto msg_entity = fbs::msg::CreateMsgEntity(builder);
