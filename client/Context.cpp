@@ -31,6 +31,8 @@ namespace context {
         channel_id_t CurrentChannelId;
         std::vector<channel_id_t> Channels;
         
+        std::unordered_map<std::string, int> TransferFdMap;
+        
     } //namespace msg
     
     ScreenHandler& GetScreen(Screen scr){

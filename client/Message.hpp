@@ -8,6 +8,10 @@
 
 #include "Context.hpp"
 
+#ifndef FILE_CHUNK_SIZE
+#define FILE_CHUNK_SIZE 1024 // 1KB
+#endif
+
 namespace msg{
     
     void InitScreens();

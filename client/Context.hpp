@@ -5,6 +5,7 @@
 #include <functional>
 #include <iostream>
 #include <vector>
+#include <unordered_map>
 
 namespace context {
     
@@ -33,6 +34,9 @@ namespace context {
         
         extern channel_id_t CurrentChannelId;
         extern std::vector<channel_id_t> Channels;
+        
+        //File name -> fd
+        extern std::unordered_map<std::string, int> TransferFdMap;
         
     } //namespace msg
     

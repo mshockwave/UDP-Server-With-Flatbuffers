@@ -307,7 +307,8 @@ namespace handlers{
                         flatbuffers::FlatBufferBuilder builder;
                         std::vector<  flatbuffers::Offset<fbs::msg::MsgEntity> > ret_list;
                         
-                        for(const auto& msg_item : msg_queue){
+                        if(!msg_queue.empty()){
+                            const auto& msg_item = *(msg_queue.begin());
                             const auto& sender = msg_item.Sender;
                             auto msg_entity = fbs::msg::CreateMsgEntity(builder);
                             switch(msg_item.ContentType){
@@ -321,7 +322,7 @@ namespace handlers{
                                                                            string_content.Union());
                                     break;
                                 }
-                                
+                                    
                                 case fbs::msg::MsgContent_FileChunk:{
                                     auto file_name_offset = builder.CreateString(msg_item.FileName);
                                     auto file_bin_offset = builder.CreateVector(msg_item.FileChunk.get(),
@@ -346,8 +347,8 @@ namespace handlers{
                             }
                             
                             ret_list.push_back(msg_entity);
+                            msg_queue.erase(msg_queue.begin());
                         }
-                        msg_queue.clear();
                         
                         auto resp = fbs::msg::CreateGetMsgResponse(builder,
                                                                    builder.CreateVector(ret_list),
@@ -403,11 +404,18 @@ namespace handlers{
                                 const auto* file_content =
                                     reinterpret_cast<const fbs::msg::FileChunk*>(msg_content->content());
                                 
-                                const auto* file_data = file_content->data();
-                                auto* storage = new sbyte_t[file_data->size()];
-                                ::memcpy(storage, file_data->Data(), file_data->size());
-                                msg_entity.ChunkSize = file_data->size();
-                                msg_entity.FileChunk.reset(storage);
+                                msg_entity.Sequence = file_content->seq();
+                                msg_entity.FileName = file_content->file_name()->str();
+                                if(file_content->seq() > 0){
+                                    const auto* file_data = file_content->data();
+                                    auto* storage = new sbyte_t[file_data->size()];
+                                    ::memcpy(storage, file_data->Data(), file_data->size());
+                                    msg_entity.ChunkSize = file_data->size();
+                                    msg_entity.FileChunk.reset(storage);
+                                }else{
+                                    msg_entity.ChunkSize = 0;
+                                    msg_entity.FileChunk.reset();
+                                }
                                 
                                 break;
                             }

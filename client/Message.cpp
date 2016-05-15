@@ -6,7 +6,9 @@
 #include <vector>
 
 extern "C"{
+#include <stdlib.h>
 #include <stdio.h>
+#include <string.h>
 #include <sys/select.h>
 #include <errno.h>
 }
@@ -274,8 +276,38 @@ namespace msg {
                     }
                         
                     case fbs::msg::MsgContent_FileChunk:{
-                        //TODO
-                        current_timeout_us = REALLY_SHORT_POLL_CYCLE;
+                        
+                        const auto* file_chunk = reinterpret_cast<const fbs::msg::FileChunk*>(content_ptr);
+                        const auto& file_name = file_chunk->file_name()->str();
+                        
+                        using context::msg::TransferFdMap;
+                        if(TransferFdMap.find(file_name) == TransferFdMap.end()){
+                            //Open new file to write
+                            auto* file_ptr = ::fopen(file_name.c_str(), "wb");
+                            TransferFdMap[file_name] = fileno(file_ptr);
+                        }
+                        
+                        //Check whether EOF
+                        if(file_chunk->seq() < 0){
+                            close(TransferFdMap[file_name]);
+                            TransferFdMap.erase(file_name);
+                            std::cout << "Done" << std::endl;
+                            current_timeout_us = LONG_POLL_CYCLE;
+                        }else{
+                            
+                            if(file_chunk->seq() == 1){
+                                std::cout << std::endl << msg->sender()->str() << " -> " ;
+                                std::cout << "Sending " << file_name << " ..." << std::endl;
+                            }
+                            
+                            const auto* data = file_chunk->data();
+                            int write_fd = TransferFdMap[file_name];
+                            write(write_fd, data->Data(), data->size());
+                            std::cout << "=";
+                            std::cout.flush();
+                            
+                            current_timeout_us = REALLY_SHORT_POLL_CYCLE;
+                        }
                         break;
                     }
                         
@@ -284,6 +316,87 @@ namespace msg {
                     }
                 }
             }
+        };
+        
+        /*Function for sending file*/
+        const auto send_file_handler = [&](const std::string& file_name)->void{
+            auto* file_ptr = ::fopen(file_name.c_str(), "rb");
+            if(file_ptr == nullptr){
+                std::cout << "Error: Failed opening " << file_name << std::endl;
+                return;
+            }
+            
+            int fd = fileno(file_ptr);
+            char read_file_buffer[FILE_CHUNK_SIZE];
+            //memset(read_file_buffer, 0, sizeof(read_file_buffer));
+            ssize_t n_bytes;
+            int64_t seq_counter = 1;
+            while( (n_bytes = read(fd, read_file_buffer, FILE_CHUNK_SIZE)) > 0){
+                
+                flatbuffers::FlatBufferBuilder builder_req, builder_file;
+                
+                auto session = fbs::CreateSession(builder_file,
+                                                  builder_file.CreateString(context::CurrentTokenStr));
+                auto file_data_offset = builder_file.CreateVector((int8_t*)read_file_buffer, n_bytes);
+                auto file_content = fbs::msg::CreateFileChunk(builder_file,
+                                                              builder_file.CreateString(file_name),
+                                                              seq_counter++,
+                                                              file_data_offset);
+                auto msg_entity = fbs::msg::CreateMsgEntity(builder_file,
+                                                            builder_file.CreateString(context::Username),
+                                                            fbs::msg::MsgContent_FileChunk,
+                                                            file_content.Union());
+                const auto& channel_id = context::msg::CurrentChannelId;
+                auto req = fbs::msg::CreatePutMsgRequest(builder_file,
+                                                         session,
+                                                         builder_file.CreateString(channel_id),
+                                                         msg_entity);
+                fbs::msg::FinishPutMsgRequestBuffer(builder_file, req);
+                
+                utils::BuildRequest("/message/put", builder_req, builder_file);
+                
+                utils::ClientSendAndRead(context::SocketFd,
+                                         builder_req,
+                                         [](char*,ssize_t n_bytes)->void{
+                                             if(n_bytes < 0){
+                                                 std::cout << "Error: Send File Chunk Failed" << std::endl;
+                                             }
+                                         });
+                
+                //memset(read_file_buffer, 0, sizeof(read_file_buffer));
+            }
+            //EOF or error
+            //Send negative sequence number
+            flatbuffers::FlatBufferBuilder builder_req, builder_file;
+            
+            auto session = fbs::CreateSession(builder_file,
+                                              builder_file.CreateString(context::CurrentTokenStr));
+            auto file_content = fbs::msg::CreateFileChunk(builder_file,
+                                                          builder_file.CreateString(file_name),
+                                                          -1);
+            auto msg_entity = fbs::msg::CreateMsgEntity(builder_file,
+                                                        builder_file.CreateString(context::Username),
+                                                        fbs::msg::MsgContent_FileChunk,
+                                                        file_content.Union());
+            const auto& channel_id = context::msg::CurrentChannelId;
+            auto req = fbs::msg::CreatePutMsgRequest(builder_file,
+                                                     session,
+                                                     builder_file.CreateString(channel_id),
+                                                     msg_entity);
+            fbs::msg::FinishPutMsgRequestBuffer(builder_file, req);
+            
+            utils::BuildRequest("/message/put", builder_req, builder_file);
+            
+            utils::ClientSendAndRead(context::SocketFd,
+                                     builder_req,
+                                     [](char*,ssize_t n_bytes)->void{
+                                         if(n_bytes < 0){
+                                             std::cout << "Error: Send File Chunk Failed" << std::endl;
+                                         }
+                                     });
+            
+            
+            ::fclose(file_ptr);
         };
         
         while(!terminate){
@@ -333,11 +446,18 @@ namespace msg {
                     /*
                      TODO: Special control
                      */
-                    if(input_line == "@quit"){
+                    const char* QUIT_KEYWORD = "@quit";
+                    const char* SEND_FILE_KEYWORD = "@sendfile ";
+                    
+                    if(input_line == QUIT_KEYWORD){
                         //Cleanup
                         FD_CLR(context::SocketFd, &fds);
                         FD_CLR(stdin_fd, &fds);
                         terminate = true;
+                        continue;
+                    }else if(input_line.find(SEND_FILE_KEYWORD) == 0){
+                        const auto file_name = input_line.substr(::strlen(SEND_FILE_KEYWORD));
+                        send_file_handler(file_name);
                         continue;
                     }
                     
