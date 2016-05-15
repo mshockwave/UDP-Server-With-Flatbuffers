@@ -4,8 +4,10 @@ extern "C"{
 #include <unistd.h>
 #include <sys/socket.h>
 #include <sys/types.h>
+#include <sys/select.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
+#include <errno.h>
 }
 
 //Hide symbol
@@ -76,14 +78,61 @@ namespace utils {
             return;
         }
         
-        char recv_buffer[RECV_BUFFER_SIZE];
-        memset(recv_buffer, 0, sizeof(recv_buffer));
-        if( (n_bytes = read(socket_fd, recv_buffer, RECV_BUFFER_SIZE)) < 0){
-            callback(nullptr, n_bytes);
-            return;
+        fd_set fds;
+        FD_ZERO(&fds);
+        const auto cleanup_callback = [&]{
+            FD_CLR(socket_fd, &fds);
+        };
+        
+        typedef struct timeval TimeVal;
+        
+        int counter = 0;
+        
+        while((counter++) < RESEND_THRESHOLD_NUM){
+            
+            FD_SET(socket_fd, &fds);
+            
+            auto timeout = TimeVal{0};
+            timeout.tv_usec = RESEND_TIMEOUT_US;
+            
+            int nready;
+            if( (nready = select(socket_fd + 1, &fds, nullptr, nullptr, &timeout)) < 0 ){
+                if(errno == EINTR){
+                    continue;
+                }else{
+                    //Abort
+                    int n_err = (errno < 0)? errno : -errno;
+                    cleanup_callback();
+                    callback(nullptr, n_err);
+                    return;
+                }
+            }else if(nready == 0){
+                //Timeout
+                //Retry
+                continue;
+            }else if(FD_ISSET(socket_fd, &fds)){
+                //Receive
+                char recv_buffer[RECV_BUFFER_SIZE];
+                memset(recv_buffer, 0, sizeof(recv_buffer));
+                if( (n_bytes = read(socket_fd, recv_buffer, RECV_BUFFER_SIZE)) < 0){
+                    callback(nullptr, n_bytes);
+                    cleanup_callback();
+                    return;
+                }
+                
+                callback(recv_buffer, n_bytes);
+                cleanup_callback();
+                return;
+            }
+            
         }
         
-        callback(recv_buffer, n_bytes);
+        if(counter >= RESEND_THRESHOLD_NUM){
+            //Timeout, failed
+            cleanup_callback();
+            int n_err = (ETIMEDOUT < 0)? ETIMEDOUT : -ETIMEDOUT;
+            callback(nullptr, n_err);
+        }
     }
     
 }; //namespace handlers

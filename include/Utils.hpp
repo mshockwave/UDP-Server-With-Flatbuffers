@@ -17,6 +17,14 @@ extern "C"{
 #define RECV_BUFFER_SIZE (2 * (1 << 10)) //2KB
 #endif
 
+#ifndef RESEND_THRESHOLD_NUM
+#define RESEND_THRESHOLD_NUM    3
+#endif
+
+#ifndef RESEND_TIMEOUT_US
+#define RESEND_TIMEOUT_US    100000 //100ms
+#endif
+
 namespace utils{
     
     inline void TrimString(std::string &str, char ch = ' '){
